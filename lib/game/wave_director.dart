@@ -26,6 +26,9 @@ class WaveDirector {
   int _nextSpawn = 0;
   double _spawnBase = 0;
 
+  /// 战役波次表只依赖难度，开局排一次即可，不必每波重建。
+  List<WavePlan>? _campaignPlans;
+
   WavePlan? plan;
   int wave = 0;
   double waveBreak = 0;
@@ -49,8 +52,7 @@ class WaveDirector {
   bool get announcing => announceTimer > 0;
 
   /// 集结阶段的提示淡出进度。
-  double get announcementProgress =>
-      (waveBreak / bossBreak).clamp(0.0, 1.0);
+  double get announcementProgress => (waveBreak / bossBreak).clamp(0.0, 1.0);
 
   /// 当前波次的阵型名称。
   String get waveName => plan?.name ?? '';
@@ -68,9 +70,7 @@ class WaveDirector {
   /// 开始第 [index] 波，返回应当播放的提示音。
   BattleCue begin(int index, double now) {
     wave = index;
-    plan = mode == BattleMode.campaign
-        ? campaignWaves(difficulty)[index - 1]
-        : endlessWave(index, difficulty, random: _random);
+    plan = _planFor(index);
     _queue
       ..clear()
       ..addAll(plan!.orders)
@@ -80,6 +80,14 @@ class WaveDirector {
     _spawnBase = now + waveBreak;
     announceTimer = waveBreak;
     return boss ? BattleCue.boss : BattleCue.wave;
+  }
+
+  WavePlan _planFor(int index) {
+    if (mode == BattleMode.campaign) {
+      final plans = _campaignPlans ??= campaignWaves(difficulty);
+      return plans[index - 1];
+    }
+    return endlessWave(index, difficulty, random: _random);
   }
 
   /// 推进集结倒计时。
