@@ -7,6 +7,7 @@ import '../game/battle_config.dart';
 import '../game/battle_sim.dart';
 import '../game/entities.dart';
 import '../theme/battle_painting.dart';
+import '../theme/paint_kit.dart';
 import '../utils/constants.dart';
 import 'scene_cache.dart';
 
@@ -25,9 +26,6 @@ class BattleScenePainter {
 
   /// 敌军按纵向排序用的复用缓冲，避免每帧新建列表。
   final List<EnemyUnit> _sortedEnemies = [];
-
-  final Paint _fill = Paint();
-  final Paint _stroke = Paint()..style = PaintingStyle.stroke;
 
   double _clock = 0;
 
@@ -91,24 +89,6 @@ class BattleScenePainter {
     _cache.dispose();
   }
 
-  Paint _fillPaint(Color color) => _fill
-    ..color = color
-    ..style = PaintingStyle.fill
-    ..strokeWidth = 0
-    ..strokeCap = StrokeCap.butt
-    ..shader = null;
-
-  Paint _strokePaint(
-    Color color,
-    double width, {
-    StrokeCap cap = StrokeCap.butt,
-  }) => _stroke
-    ..color = color
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = width
-    ..strokeCap = cap
-    ..shader = null;
-
   /// 缓存不可用时的回退：直接画径向渐变环境光。
   void _paintAmbientLight(Canvas canvas) {
     final center = Offset(sim.player.x, sim.player.y - 40);
@@ -138,14 +118,14 @@ class BattleScenePainter {
             Rect.fromLTWH(left, top, width, 2.6),
             const Radius.circular(1.3),
           ),
-          _fillPaint(const Color(0xAA160F0A)),
+          fillPaint(const Color(0xAA160F0A)),
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(
             Rect.fromLTWH(left, top, width * cover.hpRatio, 2.6),
             const Radius.circular(1.3),
           ),
-          _fillPaint(
+          fillPaint(
             cover.hpRatio > 0.45
                 ? const Color(0xFFC6A46A)
                 : const Color(0xFFE2604A),
@@ -156,7 +136,7 @@ class BattleScenePainter {
         canvas.drawCircle(
           Offset(cover.x, cover.y),
           kCoverHalfWidth,
-          _strokePaint(const Color(0x55FFD9A0), 0.8),
+          strokePaint(const Color(0x55FFD9A0), 0.8),
         );
       }
     }
@@ -173,7 +153,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(hazard.toX, hazard.toY),
         hazard.radius * (0.55 + hazard.progress * 0.45),
-        _strokePaint(
+        strokePaint(
           color.withValues(alpha: (bomb ? 0.32 : 0.22) + pulse * 0.35),
           bomb ? 1.8 : 1.2,
         ),
@@ -185,7 +165,7 @@ class BattleScenePainter {
           width: bomb ? 16 : 12,
           height: bomb ? 8 : 6,
         ),
-        _fillPaint(const Color(0x55000000)),
+        fillPaint(const Color(0x55000000)),
       );
       // 手雷走抛物线，航弹从天上垂直落下。
       final center = bomb
@@ -195,23 +175,23 @@ class BattleScenePainter {
         // 航弹：细长弹体 + 尾翼
         canvas.drawOval(
           Rect.fromCenter(center: center, width: 6, height: 12),
-          _fillPaint(const Color(0xFF2C2A24)),
+          fillPaint(const Color(0xFF2C2A24)),
         );
         canvas.drawRect(
           Rect.fromLTWH(center.dx - 3.4, center.dy - 8, 6.8, 2.4),
-          _fillPaint(const Color(0xFF514B3C)),
+          fillPaint(const Color(0xFF514B3C)),
         );
         canvas.drawCircle(
           Offset(center.dx, center.dy + 5),
           1,
-          _fillPaint(const Color(0xFFFFC46B)),
+          fillPaint(const Color(0xFFFFC46B)),
         );
       } else {
-        canvas.drawCircle(center, 2.6, _fillPaint(const Color(0xFF3C3A2C)));
+        canvas.drawCircle(center, 2.6, fillPaint(const Color(0xFF3C3A2C)));
         canvas.drawCircle(
           Offset(center.dx - 0.8, center.dy - 0.8),
           0.9,
-          _fillPaint(const Color(0xFFB9AF8E)),
+          fillPaint(const Color(0xFFB9AF8E)),
         );
       }
     }
@@ -219,7 +199,9 @@ class BattleScenePainter {
 
   void _paintPickups(Canvas canvas) {
     for (final pickup in sim.pickups) {
-      final fade = pickup.life < 1.5 ? (pickup.life / 1.5).clamp(0.0, 1.0) : 1.0;
+      final fade = pickup.life < 1.5
+          ? (pickup.life / 1.5).clamp(0.0, 1.0)
+          : 1.0;
       paintPickup(
         canvas,
         Offset(pickup.x, pickup.y),
@@ -253,10 +235,7 @@ class BattleScenePainter {
           uniform: const Color(0xFF4C473C),
           helmet: const Color(0xFF363229),
           accent: const Color(0xFF7A2A20),
-          aim: math.atan2(
-            sim.player.y - enemy.y,
-            sim.player.x - enemy.x,
-          ),
+          aim: math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
           walk: enemy.timer * 2,
           flash: flash,
           hostile: true,
@@ -269,10 +248,7 @@ class BattleScenePainter {
           uniform: const Color(0xFF5C543D),
           helmet: const Color(0xFF453E30),
           accent: const Color(0xFF9C5A2A),
-          aim: math.atan2(
-            sim.player.y - enemy.y,
-            sim.player.x - enemy.x,
-          ),
+          aim: math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
           walk: enemy.timer * 2.4,
           flash: flash,
           hostile: true,
@@ -299,7 +275,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(enemy.x, enemy.y),
         enemy.spec.radius + 4,
-        _strokePaint(const Color(0x66FFD9A0), 0.9),
+        strokePaint(const Color(0x66FFD9A0), 0.9),
       );
     }
   }
@@ -313,14 +289,14 @@ class BattleScenePainter {
         Rect.fromLTWH(left, y, width, 3),
         const Radius.circular(1.5),
       ),
-      _fillPaint(const Color(0xCC160F0A)),
+      fillPaint(const Color(0xCC160F0A)),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(left, y, width * enemy.hpRatio, 3),
         const Radius.circular(1.5),
       ),
-      _fillPaint(
+      fillPaint(
         enemy.isBoss ? const Color(0xFFFF5A3C) : const Color(0xFFFFB347),
       ),
     );
@@ -335,20 +311,16 @@ class BattleScenePainter {
       canvas.drawCircle(
         center,
         kPlayerRadius + 7 + math.sin(_clock * 5) * 1.2,
-        _strokePaint(
-          const Color(0xFF7FC4E8).withValues(alpha: 0.55),
-          1.6,
-        ),
+        strokePaint(const Color(0xFF7FC4E8).withValues(alpha: 0.55), 1.6),
       );
       canvas.drawCircle(
         center,
         kPlayerRadius + 7,
         Paint()
-          ..shader = ui.Gradient.radial(
-            center,
-            kPlayerRadius + 7,
-            [const Color(0x007FC4E8), const Color(0x337FC4E8)],
-          ),
+          ..shader = ui.Gradient.radial(center, kPlayerRadius + 7, [
+            const Color(0x007FC4E8),
+            const Color(0x337FC4E8),
+          ]),
       );
     }
     if (!blinking) {
@@ -380,7 +352,7 @@ class BattleScenePainter {
       canvas.drawLine(
         tail,
         Offset(bullet.x, bullet.y),
-        _strokePaint(
+        strokePaint(
           bullet.color.withValues(alpha: 0.35),
           bullet.radius * 2.2,
           cap: StrokeCap.round,
@@ -389,7 +361,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(bullet.x, bullet.y),
         bullet.radius,
-        _fillPaint(bullet.color),
+        fillPaint(bullet.color),
       );
     }
     for (final bullet in sim.playerShots) {
@@ -400,7 +372,7 @@ class BattleScenePainter {
       canvas.drawLine(
         tail,
         Offset(bullet.x, bullet.y),
-        _strokePaint(
+        strokePaint(
           bullet.color.withValues(alpha: 0.4),
           bullet.radius * 2,
           cap: StrokeCap.round,
@@ -409,7 +381,7 @@ class BattleScenePainter {
       canvas.drawLine(
         Offset(bullet.x, bullet.y),
         Offset(bullet.x, bullet.y - 3),
-        _strokePaint(
+        strokePaint(
           const Color(0xFFFFF3D0),
           bullet.radius,
           cap: StrokeCap.round,
@@ -441,7 +413,7 @@ class BattleScenePainter {
             canvas.drawCircle(
               Offset(effect.x, effect.y),
               effect.radius * progress,
-              _strokePaint(
+              strokePaint(
                 const Color(0xFFFFD9A0).withValues(alpha: (1 - progress) * 0.5),
                 2.4,
               ),
@@ -451,7 +423,7 @@ class BattleScenePainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.5 + progress),
-            _fillPaint(
+            fillPaint(
               const Color(0xFFFFF0C0).withValues(alpha: (1 - progress) * 0.85),
             ),
           );
@@ -466,7 +438,7 @@ class BattleScenePainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.4 + progress * 1.4),
-            _strokePaint(
+            strokePaint(
               const Color(0xFFFFD166).withValues(alpha: (1 - progress) * 0.5),
               1.4,
             ),
@@ -475,7 +447,7 @@ class BattleScenePainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (1 + progress * 0.6),
-            _strokePaint(
+            strokePaint(
               const Color(0xFF7FC4E8).withValues(alpha: (1 - progress) * 0.8),
               2,
             ),
@@ -484,7 +456,7 @@ class BattleScenePainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y - progress * 6),
             effect.radius * (0.5 + progress * 1.1),
-            _fillPaint(
+            fillPaint(
               const Color(0xFFC0A87C).withValues(alpha: (1 - progress) * 0.3),
             ),
           );
@@ -503,7 +475,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(particle.x, particle.y),
         particle.size * particle.ratio,
-        _fillPaint(particle.color.withValues(alpha: particle.ratio)),
+        fillPaint(particle.color.withValues(alpha: particle.ratio)),
       );
     }
     // 夜空余烬：持续上飘，给静止画面一点空气感。
@@ -515,7 +487,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(x, y),
         0.8,
-        _fillPaint(const Color(0xFFFFA24A).withValues(alpha: twinkle)),
+        fillPaint(const Color(0xFFFFA24A).withValues(alpha: twinkle)),
       );
     }
   }
@@ -556,10 +528,7 @@ class BattleScenePainter {
       weight: FontWeight.w700,
       spacing: 2.2,
     );
-    painter.paint(
-      canvas,
-      Offset((Field.width - painter.width) / 2, 128),
-    );
+    painter.paint(canvas, Offset((Field.width - painter.width) / 2, 128));
     if (sim.bossWarning) {
       final sub = _painter(
         '坚守阵地 · 集中火力',
@@ -573,9 +542,8 @@ class BattleScenePainter {
   }
 
   /// 把透明度量化到固定档位，缓存 key 不再逐帧变化。
-  Color _steadyColor(Color color) => color.withValues(
-    alpha: (color.a * _alphaSteps).round() / _alphaSteps,
-  );
+  Color _steadyColor(Color color) =>
+      color.withValues(alpha: (color.a * _alphaSteps).round() / _alphaSteps);
 
   /// 文本按内容与样式缓存，最近使用保留，超限淘汰最旧的一条。
   TextPainter _painter(
