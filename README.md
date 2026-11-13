@@ -54,7 +54,7 @@ flutter test
 
 | 平台 | 路径 |
 | --- | --- |
-| Windows | `%APPDATA%\BattleInShanghai\logs\app_YYYYMMDD.log` |
+| Windows | `%USERPROFILE%\Documents\BattleInShanghai\logs\app_YYYYMMDD.log` |
 | Android | 应用外部存储目录 `BattleInShanghai/logs/app_YYYYMMDD.log` |
 | Web | 仅内存日志，设置页可查看，刷新后清空 |
 
