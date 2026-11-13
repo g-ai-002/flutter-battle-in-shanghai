@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'battle_config.dart';
+import 'battle_scenes.dart';
 import 'wave_plan.dart';
 
 /// 波次调度：选波、排队刷怪、集结倒计时与播报文案都在这里，
@@ -9,6 +10,7 @@ class WaveDirector {
   WaveDirector({
     required this.mode,
     required this.difficulty,
+    this.scene = BattleScene.zhabei,
     math.Random? random,
   }) : _random = random ?? math.Random();
 
@@ -20,13 +22,16 @@ class WaveDirector {
 
   final BattleMode mode;
   final Difficulty difficulty;
+
+  /// 战役关卡，决定波次表；无尽模式只用它的景物。
+  final BattleScene scene;
   final math.Random _random;
 
   final List<SpawnOrder> _queue = [];
   int _nextSpawn = 0;
   double _spawnBase = 0;
 
-  /// 战役波次表只依赖难度，开局排一次即可，不必每波重建。
+  /// 战役波次表只依赖关卡与难度，开局排一次即可，不必每波重建。
   List<WavePlan>? _campaignPlans;
 
   WavePlan? plan;
@@ -84,7 +89,7 @@ class WaveDirector {
 
   WavePlan _planFor(int index) {
     if (mode == BattleMode.campaign) {
-      final plans = _campaignPlans ??= campaignWaves(difficulty);
+      final plans = _campaignPlans ??= sceneWaves(scene, difficulty);
       return plans[index - 1];
     }
     return endlessWave(index, difficulty, random: _random);

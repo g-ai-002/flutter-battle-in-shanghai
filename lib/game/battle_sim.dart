@@ -5,6 +5,7 @@ import '../utils/constants.dart';
 import 'airstrike.dart';
 import 'battle_config.dart';
 import 'battle_feedback.dart';
+import 'battle_scenes.dart';
 import 'combat_math.dart';
 import 'cover_field.dart';
 import 'entities.dart';
@@ -17,15 +18,27 @@ import 'wave_plan.dart';
 /// 渲染层只读取实体列表，输入通过 [movePlayer] / [throwGrenade] 进入，
 /// 声音等反馈以 [cues] 队列交给控制器。这样逻辑可以在测试里直接推进。
 class BattleSim {
-  BattleSim({required this.mode, required this.difficulty, math.Random? random})
-    : _random = random ?? math.Random() {
+  BattleSim({
+    required this.mode,
+    required this.difficulty,
+    this.scene = BattleScene.zhabei,
+    math.Random? random,
+  }) : _random = random ?? math.Random() {
     _feedback = BattleFeedback(random: _random);
-    _waves = WaveDirector(mode: mode, difficulty: difficulty, random: _random);
+    _waves = WaveDirector(
+      mode: mode,
+      difficulty: difficulty,
+      scene: scene,
+      random: _random,
+    );
     player = PlayerSoldier(x: Field.width / 2, y: Field.playerStartY);
   }
 
   final BattleMode mode;
   final Difficulty difficulty;
+
+  /// 当前阵地：决定街景配色、阵地景物与战役波次表。
+  final BattleScene scene;
   final math.Random _random;
   late final BattleFeedback _feedback;
   final CoverField _covers = CoverField();
@@ -952,6 +965,7 @@ class BattleSim {
   BattleResult get result => BattleResult(
     mode: mode,
     difficulty: difficulty,
+    scene: scene,
     won: status == BattleStatus.won,
     score: score,
     kills: kills,
@@ -966,6 +980,7 @@ class BattleResult {
   const BattleResult({
     required this.mode,
     required this.difficulty,
+    this.scene = BattleScene.zhabei,
     required this.won,
     required this.score,
     required this.kills,
@@ -976,6 +991,7 @@ class BattleResult {
 
   final BattleMode mode;
   final Difficulty difficulty;
+  final BattleScene scene;
   final bool won;
   final int score;
   final int kills;

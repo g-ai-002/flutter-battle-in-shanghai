@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../services/log_service.dart';
 import '../services/sound_service.dart';
 import 'battle_config.dart';
+import 'battle_scenes.dart';
 import 'battle_sim.dart';
 import 'entities.dart';
 import 'logic_rate.dart';
@@ -20,13 +21,17 @@ class BattleController extends ChangeNotifier {
   BattleController({
     required this.mode,
     required this.difficulty,
+    this.scene = BattleScene.zhabei,
     LogicRate logicRate = LogicRate.hz60,
     BattleSim? sim,
-  }) : sim = sim ?? BattleSim(mode: mode, difficulty: difficulty),
+  }) : sim =
+           sim ??
+           BattleSim(mode: mode, difficulty: difficulty, scene: scene),
        _stepper = FixedStepClock(logicRate.step);
 
   final BattleMode mode;
   final Difficulty difficulty;
+  final BattleScene scene;
   final BattleSim sim;
   final FixedStepClock _stepper;
   final Set<MoveAxis> _pressed = {};
