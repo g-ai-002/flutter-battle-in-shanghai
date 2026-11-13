@@ -539,29 +539,34 @@ class BattleSim {
   }
 
   void _updateBullets(double dt) {
+    var write = 0;
     for (final bullet in playerShots) {
       bullet.prevX = bullet.x;
       bullet.prevY = bullet.y;
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
+      if (bullet.y < -16 || bullet.x < -12 || bullet.x > Field.width + 12) {
+        continue;
+      }
+      playerShots[write++] = bullet;
     }
-    playerShots.removeWhere(
-      (bullet) =>
-          bullet.y < -16 || bullet.x < -12 || bullet.x > Field.width + 12,
-    );
+    if (write != playerShots.length) playerShots.length = write;
+
+    write = 0;
     for (final bullet in enemyShots) {
       bullet.prevX = bullet.x;
       bullet.prevY = bullet.y;
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
-    }
-    enemyShots.removeWhere(
-      (bullet) =>
-          bullet.y > Field.height + 16 ||
+      if (bullet.y > Field.height + 16 ||
           bullet.y < -16 ||
           bullet.x < -16 ||
-          bullet.x > Field.width + 16,
-    );
+          bullet.x > Field.width + 16) {
+        continue;
+      }
+      enemyShots[write++] = bullet;
+    }
+    if (write != enemyShots.length) enemyShots.length = write;
   }
 
   void _updateHazards(double dt) {
@@ -609,11 +614,14 @@ class BattleSim {
   }
 
   void _updatePickups(double dt) {
+    var write = 0;
     for (final pickup in pickups) {
       pickup.life -= dt;
       pickup.bob += dt * 2.4;
+      if (pickup.life <= 0) continue;
+      pickups[write++] = pickup;
     }
-    pickups.removeWhere((pickup) => pickup.life <= 0);
+    if (write != pickups.length) pickups.length = write;
   }
 
   /// 工事寿命与受击抖动；挖穿或到期后留下扬起的沙尘。
@@ -655,7 +663,7 @@ class BattleSim {
         break;
       }
     }
-    playerShots.removeWhere((bullet) => bullet.damage <= 0);
+    _dropSpent(playerShots);
 
     for (final bullet in enemyShots) {
       // 敌军俯射会先撞上沙袋；己方子弹从沙袋上方越过，不受影响。
@@ -674,7 +682,17 @@ class BattleSim {
       }
       if (_damagePlayer(bullet.damage)) bullet.damage = 0;
     }
-    enemyShots.removeWhere((bullet) => bullet.damage <= 0);
+    _dropSpent(enemyShots);
+  }
+
+  /// 原地压缩掉已经命中或被沙袋吸收的子弹，不创建迭代器与闭包。
+  void _dropSpent(List<BattleBullet> shots) {
+    var write = 0;
+    for (final bullet in shots) {
+      if (bullet.damage <= 0) continue;
+      shots[write++] = bullet;
+    }
+    if (write != shots.length) shots.length = write;
   }
 
   bool _absorbByCover(BattleBullet bullet) {

@@ -31,14 +31,22 @@ class BattleFeedback {
 
   /// 推进特效、浮动文字、粒子与抖动。
   void tick(double dt) {
+    // 原地压缩过期条目：每一步都不创建闭包与迭代器。
+    var write = 0;
     for (final effect in effects) {
       effect.age += dt;
+      if (effect.done) continue;
+      effects[write++] = effect;
     }
-    effects.removeWhere((effect) => effect.done);
+    if (write != effects.length) effects.length = write;
+
+    write = 0;
     for (final popup in popups) {
       popup.age += dt;
+      if (popup.done) continue;
+      popups[write++] = popup;
     }
-    popups.removeWhere((popup) => popup.done);
+    if (write != popups.length) popups.length = write;
     for (final particle in particles) {
       particle.life -= dt;
       particle.x += particle.vx * dt;
