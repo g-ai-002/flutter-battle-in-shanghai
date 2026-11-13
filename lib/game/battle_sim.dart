@@ -51,6 +51,13 @@ class BattleSim {
   final List<ScorePopup> popups = [];
   final List<Particle> particles = [];
 
+  /// 粒子对象池：爆炸频繁，复用死亡粒子避免每帧产生垃圾。
+  final List<Particle> _particlePool = [];
+
+  /// 粒子上限：满屏爆炸时保证绘制量可控。
+  static const int maxParticles = 180;
+  static const int _maxPooledParticles = 96;
+
   /// 待消费的播放提示，控制器取走后清空。
   final List<BattleCue> cues = [];
 
@@ -141,6 +148,9 @@ class BattleSim {
     pickups.clear();
     effects.clear();
     popups.clear();
+    for (final particle in particles) {
+      _recycleParticle(particle);
+    }
     particles.clear();
     cues.clear();
     _waves.reset();
@@ -199,7 +209,10 @@ class BattleSim {
       particle.vx *= 0.98;
       particle.vy += 42 * dt;
     }
-    particles.removeWhere((particle) => particle.life <= 0);
+    for (var i = particles.length - 1; i >= 0; i--) {
+      if (particles[i].life > 0) continue;
+      _recycleParticle(particles.removeAt(i));
+    }
     _waves.tickAnnouncement(dt);
     if (shake > 0) shake = math.max(0, shake - dt * 22);
   }
@@ -546,9 +559,10 @@ class BattleSim {
     for (final hazard in hazards) {
       hazard.elapsed += dt;
     }
-    final exploded = hazards.where((hazard) => hazard.progress >= 1).toList();
-    for (final hazard in exploded) {
-      hazards.remove(hazard);
+    for (var i = hazards.length - 1; i >= 0; i--) {
+      final hazard = hazards[i];
+      if (hazard.progress < 1) continue;
+      hazards.removeAt(i);
       _explode(hazard);
     }
   }
@@ -642,9 +656,10 @@ class BattleSim {
   }
 
   void _resolvePickupGrab() {
-    for (final pickup in pickups.toList()) {
+    for (var i = pickups.length - 1; i >= 0; i--) {
+      final pickup = pickups[i];
       if (!circleOverlap(pickup.x, pickup.y, player.x, player.y, 16)) continue;
-      pickups.remove(pickup);
+      pickups.removeAt(i);
       _applyPickup(pickup);
     }
   }
@@ -794,23 +809,33 @@ class BattleSim {
   }
 
   void _spawnParticles(double x, double y, double radius, int count) {
-    for (var i = 0; i < count; i++) {
+    final budget = math.min(count, maxParticles - particles.length);
+    for (var i = 0; i < budget; i++) {
       final angle = _random.nextDouble() * math.pi * 2;
       final speed = 24 + _random.nextDouble() * radius * 3.2;
-      particles.add(
-        Particle(
-          x: x,
-          y: y,
-          vx: math.cos(angle) * speed,
-          vy: math.sin(angle) * speed - 12,
-          life: 0.35 + _random.nextDouble() * 0.45,
-          color: _random.nextBool()
-              ? const Color(0xFFFFB347)
-              : const Color(0xFFFF6B3D),
-          size: 1.4 + _random.nextDouble() * 2.2,
-        ),
+      final life = 0.35 + _random.nextDouble() * 0.45;
+      final color = _random.nextBool()
+          ? const Color(0xFFFFB347)
+          : const Color(0xFFFF6B3D);
+      final size = 1.4 + _random.nextDouble() * 2.2;
+      final particle = _particlePool.isNotEmpty
+          ? _particlePool.removeLast()
+          : Particle();
+      particle.reset(
+        x: x,
+        y: y,
+        vx: math.cos(angle) * speed,
+        vy: math.sin(angle) * speed - 12,
+        life: life,
+        color: color,
+        size: size,
       );
+      particles.add(particle);
     }
+  }
+
+  void _recycleParticle(Particle particle) {
+    if (_particlePool.length < _maxPooledParticles) _particlePool.add(particle);
   }
 
   void _popup(String text, double x, double y, Color color) {

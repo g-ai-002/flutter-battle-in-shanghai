@@ -413,5 +413,38 @@ void main() {
       advance(sim, 1.6);
       expect(sim.waveBreakRatio, lessThanOrEqualTo(0));
     });
+
+    test('粒子对象复用且同时存在的数量有上限', () {
+      final sim = makeSim()..start();
+      sim.player.fireCooldown = 999;
+
+      GrenadeHazard blast(double x, double y) => GrenadeHazard(
+        fromX: x,
+        fromY: y,
+        toX: x,
+        toY: y,
+        duration: 0.01,
+        damage: 0,
+        radius: 24,
+        fromPlayer: false,
+      );
+
+      for (var i = 0; i < 40; i++) {
+        sim.hazards.add(blast(150, 220));
+      }
+      advance(sim, 0.05);
+      expect(sim.particles, isNotEmpty);
+      expect(sim.particles.length, lessThanOrEqualTo(BattleSim.maxParticles));
+      final spawned = Set<Particle>.identity()..addAll(sim.particles);
+
+      // 等所有粒子熄灭后再次爆炸，死亡粒子应从对象池里取回复用。
+      advance(sim, 2.2);
+      expect(sim.particles, isEmpty);
+      for (var i = 0; i < 20; i++) {
+        sim.hazards.add(blast(150, 220));
+      }
+      advance(sim, 0.05);
+      expect(sim.particles.any(spawned.contains), isTrue);
+    });
   });
 }

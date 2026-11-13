@@ -182,26 +182,46 @@ class ScorePopup {
   bool get done => age >= duration;
 }
 
-/// 火花与碎屑粒子。
+/// 火花与碎屑粒子。字段可变以支持对象池复用，避免爆炸时反复分配。
 class Particle {
   Particle({
-    required this.x,
-    required this.y,
-    required this.vx,
-    required this.vy,
-    required this.life,
-    required this.color,
-    required this.size,
-  }) : maxLife = life;
+    this.x = 0,
+    this.y = 0,
+    this.vx = 0,
+    this.vy = 0,
+    this.life = 0,
+    this.maxLife = 1,
+    this.color = const Color(0xFFFFB347),
+    this.size = 1,
+  });
 
   double x;
   double y;
   double vx;
   double vy;
   double life;
-  final double maxLife;
-  final Color color;
-  final double size;
+  double maxLife;
+  Color color;
+  double size;
+
+  void reset({
+    required double x,
+    required double y,
+    required double vx,
+    required double vy,
+    required double life,
+    required Color color,
+    required double size,
+  }) {
+    this.x = x;
+    this.y = y;
+    this.vx = vx;
+    this.vy = vy;
+    this.life = life;
+    maxLife = life;
+    this.color = color;
+    this.size = size;
+  }
 
   double get ratio => (life / maxLife).clamp(0.0, 1.0);
 }

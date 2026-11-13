@@ -52,7 +52,7 @@ class BattleController extends ChangeNotifier {
   }
 
   void advance(double dt) {
-    if (_disposed) return;
+    if (_disposed || sim.status == BattleStatus.paused) return;
     _stepper.advance(dt, (span) => _step(math.min(span, maxStepSpan)));
   }
 
@@ -77,12 +77,13 @@ class BattleController extends ChangeNotifier {
   }
 
   void _drainCues() {
-    if (sim.cues.isEmpty) return;
-    final cues = List.of(sim.cues);
-    sim.cues.clear();
-    for (final cue in cues) {
-      SoundService.play(cue);
+    final cues = sim.cues;
+    if (cues.isEmpty) return;
+    final count = cues.length;
+    for (var i = 0; i < count; i++) {
+      SoundService.play(cues[i]);
     }
+    cues.clear();
   }
 
   void _syncStatus() {
