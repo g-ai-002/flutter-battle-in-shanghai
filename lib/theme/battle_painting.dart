@@ -24,6 +24,7 @@ const Color _ember = Color(0xFFFFA24A);
 /// 屋顶循环块的高度：一个块 92，缓存瓦片取两块以保留窗灯的错落。
 const double kRoofBlock = 92;
 const double kRoofTileHeight = kRoofBlock * 2;
+const double _roofWidth = 27;
 
 // 复用 Paint：战场每帧要画上百个图元，反复 new Paint 会制造大量垃圾。
 final Paint _fill = Paint();
@@ -66,29 +67,28 @@ void paintStreetBase(Canvas canvas, Size size) {
 
   // 人行道边线与排水沟
   final walkPaint = _fillPaint(const Color(0xFF43362A));
-  canvas.drawRect(Rect.fromLTWH(27, 0, 7, size.height), walkPaint);
+  canvas.drawRect(Rect.fromLTWH(_roofWidth, 0, 7, size.height), walkPaint);
   canvas.drawRect(
-    Rect.fromLTWH(size.width - 34, 0, 7, size.height),
+    Rect.fromLTWH(size.width - _roofWidth - 7, 0, 7, size.height),
     walkPaint,
   );
   final curb = _fillPaint(const Color(0xFF5E4C38));
-  canvas.drawRect(Rect.fromLTWH(34, 0, 1.6, size.height), curb);
+  canvas.drawRect(Rect.fromLTWH(_roofWidth + 7, 0, 1.6, size.height), curb);
   canvas.drawRect(
-    Rect.fromLTWH(size.width - 35.6, 0, 1.6, size.height),
+    Rect.fromLTWH(size.width - _roofWidth - 8.6, 0, 1.6, size.height),
     curb,
   );
 }
 
 /// 一个屋顶循环块：左右两侧各一块，缓存时直接渲染整块瓦片。
 void paintRoofTile(Canvas canvas, Size size) {
-  const roofWidth = 27.0;
   final roofPaint = _fillPaint(_roof);
   final edgePaint = _strokePaint(_roofEdge, 0.8);
   for (var i = 0; i < kRoofTileHeight ~/ kRoofBlock; i++) {
     final y = i * kRoofBlock;
     for (final left in [true, false]) {
-      final x = left ? 0.0 : size.width - roofWidth;
-      final roof = Rect.fromLTWH(x, y, roofWidth, kRoofBlock - 10);
+      final x = left ? 0.0 : size.width - _roofWidth;
+      final roof = Rect.fromLTWH(x, y, _roofWidth, kRoofBlock - 10);
       canvas.drawRect(roof, roofPaint);
       canvas.drawRect(roof.deflate(2.5), edgePaint);
       // 屋顶设备与天窗
@@ -136,7 +136,7 @@ void paintStreetMotion(Canvas canvas, Size size, double time) {
     );
   }
   final lanePaint = _fillPaint(const Color(0xFF5E5140));
-  for (final x in [27.0 + 34, size.width - 27.0 - 34]) {
+  for (final x in [_roofWidth + 34, size.width - _roofWidth - 34]) {
     for (var y = -40 + dashShift * 0.6; y < size.height; y += 70) {
       canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 22), lanePaint);
     }
