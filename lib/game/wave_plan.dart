@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import '../utils/constants.dart';
 import 'battle_config.dart';
 
 /// 单个刷怪指令：波次开始后 [at] 秒在 [x] 处出现。
@@ -19,12 +20,16 @@ class WavePlan {
   const WavePlan({
     required this.index,
     required this.orders,
+    this.name = '',
     this.boss = false,
     this.hpMultiplier = 1,
   });
 
   final int index;
   final List<SpawnOrder> orders;
+
+  /// 阵型名称，例如「两翼夹击」，在播报与战况条里展示。
+  final String name;
   final bool boss;
   final double hpMultiplier;
 
@@ -71,45 +76,63 @@ List<WavePlan> campaignWaves(Difficulty difficulty, {math.Random? random}) {
   return [
     WavePlan(
       index: 1,
+      name: '前哨试探',
       orders: line(EnemyKind.infantry, 6, 0.2, 0.55),
     ),
     WavePlan(
       index: 2,
+      name: '两翼夹击',
       orders: [
-        ...line(EnemyKind.infantry, 5, 0.2, 0.5, toX: 220),
+        ...line(
+          EnemyKind.infantry,
+          3,
+          0.2,
+          0.5,
+          fromX: 40,
+          toX: 56,
+        ),
+        ...line(
+          EnemyKind.infantry,
+          3,
+          0.45,
+          0.5,
+          fromX: 244,
+          toX: 260,
+        ),
         ...line(
           EnemyKind.rifleman,
           2,
-          2.4,
-          1.1,
-          fromX: 70,
-          toX: 230,
+          2.6,
+          1.0,
+          fromX: 110,
+          toX: 190,
           holdMin: 80,
-          holdMax: 150,
+          holdMax: 140,
         ),
-        ...line(EnemyKind.infantry, 2, 4.0, 0.7, fromX: 120, toX: 190),
       ],
     ),
     WavePlan(
       index: 3,
+      name: '火力压制',
       orders: [
-        ...line(EnemyKind.infantry, 6, 0.2, 0.45),
+        ...line(EnemyKind.infantry, 5, 0.6, 0.5, fromX: 60, toX: 240),
         ...line(
           EnemyKind.rifleman,
-          3,
-          1.8,
-          0.9,
-          fromX: 60,
-          toX: 240,
-          holdMin: 70,
-          holdMax: 140,
+          4,
+          0.3,
+          0.8,
+          fromX: 56,
+          toX: 244,
+          holdMin: 66,
+          holdMax: 130,
         ),
         ...line(
           EnemyKind.grenadier,
-          1,
-          3.2,
-          1,
-          fromX: 150,
+          2,
+          2.2,
+          1.2,
+          fromX: 96,
+          toX: 204,
           holdMin: 100,
           holdMax: 150,
         ),
@@ -117,38 +140,43 @@ List<WavePlan> campaignWaves(Difficulty difficulty, {math.Random? random}) {
     ),
     WavePlan(
       index: 4,
+      name: '装甲突袭',
       orders: [
-        ...line(EnemyKind.infantry, 7, 0.2, 0.4),
+        ...line(EnemyKind.infantry, 6, 0.2, 0.42),
+        order(1.0, EnemyKind.armoredCar, 92, holdY: 82),
+        order(2.4, EnemyKind.armoredCar, 208, holdY: 82),
         ...line(
           EnemyKind.rifleman,
-          3,
-          1.2,
-          0.9,
-          fromX: 55,
-          toX: 245,
-          holdMin: 70,
-          holdMax: 130,
+          2,
+          2.0,
+          1.0,
+          fromX: 60,
+          toX: 240,
+          holdMin: 72,
+          holdMax: 120,
         ),
         ...line(
           EnemyKind.grenadier,
           2,
-          2.6,
-          1.2,
-          fromX: 90,
-          toX: 210,
-          holdMin: 95,
-          holdMax: 145,
+          3.4,
+          1.3,
+          fromX: 120,
+          toX: 180,
+          holdMin: 108,
+          holdMax: 150,
         ),
-        order(4.6, EnemyKind.armoredCar, 150, holdY: 95),
       ],
     ),
     WavePlan(
       index: 5,
+      name: '头目决战',
       boss: true,
       orders: [
-        order(0.2, EnemyKind.infantry, 70),
-        order(0.9, EnemyKind.infantry, 230),
-        order(2.2, EnemyKind.boss, 150, holdY: 78),
+        order(0.2, EnemyKind.infantry, 60),
+        order(0.6, EnemyKind.rifleman, 240, holdY: 96),
+        order(1.0, EnemyKind.infantry, 240),
+        order(1.4, EnemyKind.grenadier, 190, holdY: 118),
+        order(2.6, EnemyKind.boss, 150, holdY: 78),
       ],
     ),
   ];
@@ -164,6 +192,8 @@ WavePlan endlessWave(int index, Difficulty difficulty, {math.Random? random}) {
   final hpMultiplier = bossWave
       ? baseScale * (1 + (index ~/ kEndlessBossEvery - 1) * 0.5)
       : baseScale;
+  const names = ['散兵冲击', '交叉火力', '炮兵掩护', '装甲纵队'];
+  final name = bossWave ? '头目督战' : names[(index - 1) % names.length];
 
   double hold(double min, double max) =>
       min + rng.nextDouble() * (max - min);
@@ -203,6 +233,12 @@ WavePlan endlessWave(int index, Difficulty difficulty, {math.Random? random}) {
           holdY: hold(80, 115));
     }
   }
+  // 奇数波追加两翼火力：从街口两侧压上来，逼玩家换位。
+  if (!bossWave && index.isOdd && index >= 3) {
+    for (final x in [44.0, Field.width - 44]) {
+      push(EnemyKind.rifleman, 2.0 + rng.nextDouble(), x, holdY: hold(74, 120));
+    }
+  }
   if (bossWave) {
     push(
       EnemyKind.boss,
@@ -210,10 +246,12 @@ WavePlan endlessWave(int index, Difficulty difficulty, {math.Random? random}) {
       150,
       holdY: 78,
     );
+    push(EnemyKind.rifleman, 0.8, 70, holdY: hold(88, 110));
   }
   return WavePlan(
     index: index,
     orders: orders,
+    name: name,
     boss: bossWave,
     hpMultiplier: hpMultiplier,
   );

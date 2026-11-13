@@ -605,6 +605,109 @@ void paintPickup(
   canvas.restore();
 }
 
+/// 工事：两排沙袋堆成的临时掩体，血量越低颜色越灰、还带裂缝。
+void paintCoverWall(
+  Canvas canvas,
+  Offset center,
+  double hpRatio,
+  double time,
+  double shake,
+) {
+  final jitter = shake > 0 ? math.sin(time * 70) * shake * 1.6 : 0.0;
+  canvas.save();
+  canvas.translate(center.dx + jitter, center.dy);
+  canvas.drawOval(
+    Rect.fromCenter(center: const Offset(0, 6), width: 56, height: 12),
+    _fillPaint(const Color(0x55000000)),
+  );
+  final wear = (1 - hpRatio).clamp(0.0, 1.0);
+  final bagColor = Color.lerp(_sandbag, const Color(0xFF6B5A44), wear * 0.6)!;
+  final light = Color.lerp(_sandbagLight, const Color(0xFF8A7A60), wear * 0.5)!;
+  for (var row = 0; row < 2; row++) {
+    final y = row == 0 ? -6.0 : 3.0;
+    final offset = row == 0 ? 0.0 : 8.0;
+    for (var i = 0; i < 4; i++) {
+      final x = -26 + offset + i * 15 - (row == 0 ? 0 : 3);
+      final bag = RRect.fromRectAndRadius(
+        Rect.fromLTWH(x, y, 16, 10),
+        const Radius.circular(4),
+      );
+      canvas.drawRRect(bag, _fillPaint(bagColor));
+      canvas.drawRRect(
+        bag,
+        _strokePaint(light.withValues(alpha: 0.6), 0.8),
+      );
+    }
+  }
+  if (wear > 0.35) {
+    final crack = _strokePaint(
+      const Color(0x66000000).withValues(alpha: 0.35 + wear * 0.3),
+      0.9,
+    );
+    canvas.drawLine(const Offset(-14, -6), const Offset(-6, 2), crack);
+    canvas.drawLine(const Offset(-6, 2), const Offset(-2, -4), crack);
+    canvas.drawLine(const Offset(9, 3), const Offset(15, -4), crack);
+  }
+  canvas.restore();
+}
+
+/// 空袭轰炸机：从左侧掠过战场上空，机翼下挂着航弹。
+void paintAirstrikePlane(Canvas canvas, Size size, double progress) {
+  final x = -46 + progress * (size.width + 92);
+  const y = 44.0;
+  final alpha = (1 - (progress - 0.5).abs() * 1.4).clamp(0.0, 1.0);
+  if (alpha <= 0) return;
+  canvas.save();
+  canvas.translate(x, y);
+  // 尾迹
+  final trail = _strokePaint(
+    const Color(0x55FFE6C0).withValues(alpha: alpha * 0.5),
+    1.4,
+  );
+  canvas.drawLine(const Offset(-18, 0), const Offset(-44, 2), trail);
+  canvas.drawLine(const Offset(-18, 0), const Offset(-40, -2), trail);
+  final body = _fillPaint(const Color(0xFF37322A).withValues(alpha: alpha));
+  // 机身
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      const Rect.fromLTWH(-17, -3.2, 34, 6.4),
+      const Radius.circular(3),
+    ),
+    body,
+  );
+  // 主翼与尾翼
+  final wing = Path()
+    ..moveTo(-2, -2)
+    ..lineTo(7, -2)
+    ..lineTo(1, -13)
+    ..lineTo(-6, -13)
+    ..close();
+  canvas.drawPath(wing, body);
+  final wingBack = Path()
+    ..moveTo(-2, 2)
+    ..lineTo(7, 2)
+    ..lineTo(2, 12)
+    ..lineTo(-5, 12)
+    ..close();
+  canvas.drawPath(wingBack, body);
+  canvas.drawRect(
+    const Rect.fromLTWH(-17, -2, 5, 8),
+    _fillPaint(const Color(0xFF2A251E).withValues(alpha: alpha)),
+  );
+  // 座舱与引擎火光
+  canvas.drawCircle(
+    const Offset(9, -1),
+    1.8,
+    _fillPaint(const Color(0xFF9FC4D8).withValues(alpha: alpha * 0.9)),
+  );
+  canvas.drawCircle(
+    const Offset(-17, 0),
+    2.4,
+    _fillPaint(const Color(0xFFFFC46B).withValues(alpha: alpha * 0.7)),
+  );
+  canvas.restore();
+}
+
 /// 前景沙袋与铁丝网：压在战场底部，增强纵深。
 void paintBarricade(Canvas canvas, Size size, double time) {
   final rowY = size.height - 7;

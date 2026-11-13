@@ -184,7 +184,20 @@ enum PickupKind {
 }
 
 /// 战斗提示音类型，由控制器转给音效服务。
-enum BattleCue { shot, enemyShot, hit, explosion, pickup, hurt, wave, boss, victory, defeat }
+enum BattleCue {
+  shot,
+  enemyShot,
+  hit,
+  explosion,
+  pickup,
+  hurt,
+  wave,
+  boss,
+  cover,
+  airstrike,
+  victory,
+  defeat,
+}
 
 const double kPlayerMaxHp = 100;
 const double kPlayerSpeed = 132;
@@ -193,6 +206,30 @@ const int kPlayerMaxShieldSeconds = 6;
 const double kGrenadeCooldown = 12;
 const double kGrenadeDamage = 110;
 const double kGrenadeRadius = 58;
+
+/// 工事（沙袋掩体）：玩家布置的临时防线，挡住敌军弹雨但挡不住头顶的炮弹。
+const int kCoverMax = 3;
+const double kCoverCooldown = 14;
+const double kCoverHp = 140;
+const double kCoverLife = 22;
+const double kCoverHalfWidth = 26;
+const double kCoverHeight = 12;
+
+/// 站在工事后方的减伤范围与比例。
+const double kCoverShelterRange = 52;
+const double kCoverShelterReduction = 0.4;
+
+/// 步兵贴到工事后每秒造成的破坏。
+const double kCoverGnawDamage = 12;
+
+/// 空袭支援：一轮三枚炸弹覆盖敌军集群，落点有预警。
+const double kAirstrikeCooldown = 30;
+const double kAirstrikeInitialDelay = 8;
+const double kAirstrikeDamage = 120;
+const double kAirstrikeRadius = 62;
+const int kAirstrikeBombs = 3;
+const double kAirstrikeSpacing = 40;
+const double kAirstrikeFuse = 1.2;
 
 /// 战役固定五波，最后一波是头目。
 const int kCampaignWaves = 5;

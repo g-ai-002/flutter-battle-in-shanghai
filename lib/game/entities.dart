@@ -19,6 +19,8 @@ class PlayerSoldier {
   double weaponUntil = 0;
   double fireCooldown = 0;
   double grenadeReadyAt = 0;
+  double coverReadyAt = 0;
+  double airstrikeReadyAt = 0;
 
   /// 枪口闪光剩余时间，仅用于渲染。
   double muzzle = 0;
@@ -102,7 +104,9 @@ class BattleBullet {
   double get angle => math.atan2(vy, vx);
 }
 
-/// 手榴弹：抛物线落点爆炸，落地前有影子提示。
+/// 手榴弹与空投炸弹：抛物线落点爆炸，落地前有影子提示。
+enum HazardKind { grenade, bomb }
+
 class GrenadeHazard {
   GrenadeHazard({
     required this.fromX,
@@ -113,6 +117,7 @@ class GrenadeHazard {
     required this.damage,
     required this.radius,
     required this.fromPlayer,
+    this.kind = HazardKind.grenade,
   });
 
   final double fromX;
@@ -123,6 +128,7 @@ class GrenadeHazard {
   double damage;
   final double radius;
   final bool fromPlayer;
+  final HazardKind kind;
   double elapsed = 0;
 
   double get progress => (elapsed / duration).clamp(0.0, 1.0);
@@ -133,6 +139,36 @@ class GrenadeHazard {
   double get x => fromX + (toX - fromX) * progress;
   double get y => fromY + (toY - fromY) * progress;
 }
+
+/// 工事：玩家布置的沙袋墙，挡住敌军子弹，步兵贴上来会一点点挖开它。
+class CoverWall {
+  CoverWall({required this.x, required this.y, this.hp = kCoverHp})
+    : maxHp = hp,
+      life = kCoverLife,
+      left = x - kCoverHalfWidth,
+      right = x + kCoverHalfWidth,
+      top = y - kCoverHeight / 2,
+      bottom = y + kCoverHeight / 2;
+
+  final double x;
+  final double y;
+  final double maxHp;
+  final double left;
+  final double right;
+  final double top;
+  final double bottom;
+
+  double hp;
+  double life;
+
+  /// 受击抖动，仅用于渲染。
+  double shake = 0;
+
+  double get hpRatio => (hp / maxHp).clamp(0.0, 1.0);
+
+  bool get ruined => hp <= 0 || life <= 0;
+}
+
 
 /// 可拾取的补给。
 class PickupItem {
@@ -145,7 +181,17 @@ class PickupItem {
   double bob = 0;
 }
 
-enum EffectKind { explosion, hit, muzzle, pickup, shieldBreak, bossDown, boom }
+enum EffectKind {
+  explosion,
+  hit,
+  muzzle,
+  pickup,
+  shieldBreak,
+  bossDown,
+  boom,
+  dust,
+  plane,
+}
 
 /// 一次性视觉特效，渲染层按进度自行绘制。
 class BattleEffect {

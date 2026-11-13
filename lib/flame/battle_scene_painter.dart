@@ -52,6 +52,7 @@ class BattleScenePainter {
       paintStreet(canvas, field, clock);
       _paintAmbientLight(canvas);
     }
+    _paintCovers(canvas);
     _paintHazards(canvas);
     _paintPickups(canvas);
 
@@ -117,39 +118,99 @@ class BattleScenePainter {
     canvas.restore();
   }
 
+  void _paintCovers(Canvas canvas) {
+    for (final cover in sim.covers) {
+      // 快要塌的工事淡出提示，避免玩家把掩体当永久防线。
+      final fade = cover.life < 2 ? (cover.life / 2).clamp(0.0, 1.0) : 1.0;
+      paintCoverWall(
+        canvas,
+        Offset(cover.x, cover.y),
+        cover.hpRatio,
+        _clock,
+        cover.shake,
+      );
+      if (cover.hpRatio < 1) {
+        const width = kCoverHalfWidth * 1.7;
+        final left = cover.x - width / 2;
+        final top = cover.bottom + 3;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(left, top, width, 2.6),
+            const Radius.circular(1.3),
+          ),
+          _fillPaint(const Color(0xAA160F0A)),
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(left, top, width * cover.hpRatio, 2.6),
+            const Radius.circular(1.3),
+          ),
+          _fillPaint(
+            cover.hpRatio > 0.45
+                ? const Color(0xFFC6A46A)
+                : const Color(0xFFE2604A),
+          ),
+        );
+      }
+      if (fade < 1) {
+        canvas.drawCircle(
+          Offset(cover.x, cover.y),
+          kCoverHalfWidth,
+          _strokePaint(const Color(0x55FFD9A0), 0.8),
+        );
+      }
+    }
+  }
+
   void _paintHazards(Canvas canvas) {
     for (final hazard in sim.hazards) {
+      final bomb = hazard.kind == HazardKind.bomb;
       final pulse = 0.4 + 0.4 * math.sin(_clock * 10).abs();
       final color = hazard.fromPlayer
-          ? const Color(0xFFFFD166)
+          ? (bomb ? const Color(0xFFFF7043) : const Color(0xFFFFD166))
           : const Color(0xFFFF6B3D);
-      // 落点预警圈
+      // 落点预警圈：炸弹的落点更大、更显眼。
       canvas.drawCircle(
         Offset(hazard.toX, hazard.toY),
         hazard.radius * (0.55 + hazard.progress * 0.45),
-        _strokePaint(color.withValues(alpha: 0.22 + pulse * 0.35), 1.2),
+        _strokePaint(
+          color.withValues(alpha: (bomb ? 0.32 : 0.22) + pulse * 0.35),
+          bomb ? 1.8 : 1.2,
+        ),
       );
       // 影子
       canvas.drawOval(
         Rect.fromCenter(
           center: Offset(hazard.toX, hazard.toY),
-          width: 12,
-          height: 6,
+          width: bomb ? 16 : 12,
+          height: bomb ? 8 : 6,
         ),
         _fillPaint(const Color(0x55000000)),
       );
-      // 飞行中的手雷
       final center = Offset(hazard.x, hazard.y - hazard.lift);
-      canvas.drawCircle(
-        center,
-        2.6,
-        _fillPaint(const Color(0xFF3C3A2C)),
-      );
-      canvas.drawCircle(
-        Offset(center.dx - 0.8, center.dy - 0.8),
-        0.9,
-        _fillPaint(const Color(0xFFB9AF8E)),
-      );
+      if (bomb) {
+        // 航弹：细长弹体 + 尾翼
+        canvas.drawOval(
+          Rect.fromCenter(center: center, width: 6, height: 12),
+          _fillPaint(const Color(0xFF2C2A24)),
+        );
+        canvas.drawRect(
+          Rect.fromLTWH(center.dx - 3.4, center.dy - 8, 6.8, 2.4),
+          _fillPaint(const Color(0xFF514B3C)),
+        );
+        canvas.drawCircle(
+          Offset(center.dx, center.dy + 5),
+          1,
+          _fillPaint(const Color(0xFFFFC46B)),
+        );
+      } else {
+        canvas.drawCircle(center, 2.6, _fillPaint(const Color(0xFF3C3A2C)));
+        canvas.drawCircle(
+          Offset(center.dx - 0.8, center.dy - 0.8),
+          0.9,
+          _fillPaint(const Color(0xFFB9AF8E)),
+        );
+      }
     }
   }
 
@@ -415,6 +476,20 @@ class BattleScenePainter {
               const Color(0xFF7FC4E8).withValues(alpha: (1 - progress) * 0.8),
               2,
             ),
+          );
+        case EffectKind.dust:
+          canvas.drawCircle(
+            Offset(effect.x, effect.y - progress * 6),
+            effect.radius * (0.5 + progress * 1.1),
+            _fillPaint(
+              const Color(0xFFC0A87C).withValues(alpha: (1 - progress) * 0.3),
+            ),
+          );
+        case EffectKind.plane:
+          paintAirstrikePlane(
+            canvas,
+            const Size(Field.width, Field.height),
+            progress,
           );
       }
     }

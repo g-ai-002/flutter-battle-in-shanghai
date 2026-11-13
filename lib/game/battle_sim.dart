@@ -47,6 +47,7 @@ class BattleSim {
   final List<BattleBullet> enemyShots = [];
   final List<GrenadeHazard> hazards = [];
   final List<PickupItem> pickups = [];
+  final List<CoverWall> covers = [];
   final List<BattleEffect> effects = [];
   final List<ScorePopup> popups = [];
   final List<Particle> particles = [];
@@ -88,6 +89,9 @@ class BattleSim {
   /// 波次开始时的大字提示。
   String get announcement => _waves.announcement;
 
+  /// 当前波次的阵型名称，例如「两翼夹击」。
+  String get waveName => _waves.waveName;
+
   /// 集结提示的淡出进度，渲染层直接按它计算透明度。
   double get waveBreakRatio => _waves.announcementProgress;
 
@@ -99,7 +103,8 @@ class BattleSim {
     if (status == BattleStatus.ready) return '准备战斗';
     if (waveBreak > 0) return _waves.phaseBrief;
     if (bossActive) return '头目战 · 剩余 $remainingEnemies';
-    return '剩余敌军 $remainingEnemies';
+    if (waveName.isEmpty) return '剩余敌军 $remainingEnemies';
+    return '$waveName · 剩余敌军 $remainingEnemies';
   }
 
   double get comboMultiplier {
@@ -109,6 +114,25 @@ class BattleSim {
 
   double get grenadeCooldownLeft =>
       math.max(0, player.grenadeReadyAt - time);
+
+  double get coverCooldownLeft => math.max(0, player.coverReadyAt - time);
+
+  double get airstrikeCooldownLeft =>
+      math.max(0, player.airstrikeReadyAt - time);
+
+  int get coverCount => covers.length;
+  int get coverLimit => kCoverMax;
+
+  /// 玩家是否蹲在工事后方的掩护范围内。
+  bool get sheltering {
+    for (final cover in covers) {
+      if ((player.x - cover.x).abs() > kCoverHalfWidth + 10) continue;
+      final behind = player.y - cover.y;
+      if (behind < 0 || behind > kCoverShelterRange) continue;
+      return true;
+    }
+    return false;
+  }
 
   double get weaponSecondsLeft =>
       player.weapon == WeaponKind.pistol
@@ -121,7 +145,17 @@ class BattleSim {
   void start() {
     if (status != BattleStatus.ready) return;
     status = BattleStatus.running;
+    player.airstrikeReadyAt = time + kAirstrikeInitialDelay;
+    _layStartingCovers();
     _beginWave(1);
+  }
+
+  /// 开局的两处沙袋工事，让玩家一上来就有掩体可用。
+  void _layStartingCovers() {
+    covers
+      ..clear()
+      ..add(CoverWall(x: 78, y: 262))
+      ..add(CoverWall(x: Field.width - 78, y: 262));
   }
 
   void pause() {
@@ -146,6 +180,7 @@ class BattleSim {
     enemyShots.clear();
     hazards.clear();
     pickups.clear();
+    covers.clear();
     effects.clear();
     popups.clear();
     for (final particle in particles) {
@@ -172,6 +207,7 @@ class BattleSim {
     _updateBullets(dt);
     _updateHazards(dt);
     _updatePickups(dt);
+    _updateCovers(dt);
 
     if (comboTimer > 0) {
       comboTimer -= dt;
@@ -315,7 +351,7 @@ class BattleSim {
       enemy.spawnGuard = math.max(0, enemy.spawnGuard - dt);
       switch (enemy.kind) {
         case EnemyKind.infantry:
-          _marchDown(enemy, dt, sway: 15, swaySpeed: 2.6);
+          _advanceInfantry(enemy, dt);
         case EnemyKind.rifleman:
           _holdAndAttack(enemy, dt, interval: 1.5);
         case EnemyKind.grenadier:
@@ -328,6 +364,38 @@ class BattleSim {
       enemy.x = enemy.x.clamp(20.0, Field.width - 20);
       _resolveContact(enemy);
     }
+  }
+
+  /// 步兵推进：撞上工事就停下挖沙袋，把工事当成一道门槛。
+  void _advanceInfantry(EnemyUnit enemy, double dt) {
+    final cover = _coverAt(enemy.x, enemy.y);
+    if (cover == null) {
+      _marchDown(enemy, dt, sway: 15, swaySpeed: 2.6);
+      return;
+    }
+    cover.hp -= kCoverGnawDamage * dt;
+    cover.shake = 1;
+    if (effects.length < 24 && _random.nextDouble() < dt * 2.5) {
+      effects.add(
+        BattleEffect(
+          kind: EffectKind.dust,
+          x: cover.x + (enemy.x - cover.x) * 0.6,
+          y: cover.y - 4,
+          radius: 10,
+          duration: 0.4,
+        ),
+      );
+    }
+  }
+
+  /// 指定位置前方是否有工事挡住去路。
+  CoverWall? _coverAt(double x, double y) {
+    for (final cover in covers) {
+      if ((x - cover.x).abs() > kCoverHalfWidth + 4) continue;
+      if (y < cover.top - 4 || y > cover.bottom + 12) continue;
+      return cover;
+    }
+    return null;
   }
 
   void _marchDown(
@@ -579,7 +647,21 @@ class BattleSim {
     );
     _spawnParticles(hazard.toX, hazard.toY, hazard.radius, 10);
     cues.add(BattleCue.explosion);
-    shake = math.max(shake, 8);
+    shake = math.max(shake, hazard.kind == HazardKind.bomb ? 11 : 8);
+    // 任何一次落点爆炸都会削掉附近的沙袋。
+    for (final cover in covers) {
+      if (!circleOverlap(
+        cover.x,
+        cover.y,
+        hazard.toX,
+        hazard.toY,
+        hazard.radius + kCoverHalfWidth,
+      )) {
+        continue;
+      }
+      cover.hp -= hazard.damage * 0.5;
+      cover.shake = 1;
+    }
     if (hazard.fromPlayer) {
       for (final enemy in enemies) {
         if (enemy.dead) continue;
@@ -613,6 +695,30 @@ class BattleSim {
     pickups.removeWhere((pickup) => pickup.life <= 0);
   }
 
+  /// 工事寿命与受击抖动；挖穿或到期后留下扬起的沙尘。
+  void _updateCovers(double dt) {
+    for (final cover in covers) {
+      cover.life -= dt;
+      cover.shake = math.max(0, cover.shake - dt * 3.2);
+    }
+    for (var i = covers.length - 1; i >= 0; i--) {
+      final cover = covers[i];
+      if (!cover.ruined) continue;
+      covers.removeAt(i);
+      effects.add(
+        BattleEffect(
+          kind: EffectKind.dust,
+          x: cover.x,
+          y: cover.y,
+          radius: 26,
+          duration: 0.55,
+        ),
+      );
+      _spawnParticles(cover.x, cover.y, 16, 6);
+      cues.add(BattleCue.cover);
+    }
+  }
+
   void _resolveBulletHits() {
     for (final bullet in playerShots) {
       if (!bullet.fromPlayer) continue;
@@ -638,6 +744,8 @@ class BattleSim {
     playerShots.removeWhere((bullet) => bullet.damage <= 0);
 
     for (final bullet in enemyShots) {
+      // 敌军俯射会先撞上沙袋；己方子弹从沙袋上方越过，不受影响。
+      if (_absorbByCover(bullet)) continue;
       final limit = kPlayerRadius + bullet.radius;
       if (!segmentHitsCircle(
         bullet.prevX,
@@ -653,6 +761,37 @@ class BattleSim {
       if (_damagePlayer(bullet.damage)) bullet.damage = 0;
     }
     enemyShots.removeWhere((bullet) => bullet.damage <= 0);
+  }
+
+  bool _absorbByCover(BattleBullet bullet) {
+    for (final cover in covers) {
+      if (!segmentHitsBox(
+        bullet.prevX,
+        bullet.prevY,
+        bullet.x,
+        bullet.y,
+        cover.left,
+        cover.top,
+        cover.right,
+        cover.bottom,
+      )) {
+        continue;
+      }
+      cover.hp -= bullet.damage;
+      cover.shake = 1;
+      effects.add(
+        BattleEffect(
+          kind: EffectKind.dust,
+          x: bullet.x,
+          y: bullet.y,
+          radius: 7,
+          duration: 0.22,
+        ),
+      );
+      bullet.damage = 0;
+      return true;
+    }
+    return false;
   }
 
   void _resolvePickupGrab() {
@@ -738,6 +877,8 @@ class BattleSim {
       player.invulnerableUntil = time + 0.35;
       return true;
     }
+    // 蹲在工事后面时，擦过沙袋的弹片与直射威力都被削弱。
+    if (sheltering) damage *= 1 - kCoverShelterReduction;
     player.hp -= damage;
     player.invulnerableUntil = time + 0.9;
     shake = math.max(shake, 9);
@@ -919,6 +1060,102 @@ class BattleSim {
     );
     cues.add(BattleCue.enemyShot);
     return true;
+  }
+
+  /// 布置沙袋工事：堆在身前 56 单位处，冷却与数量都有上限。
+  bool deployCover() {
+    if (status != BattleStatus.running) return false;
+    if (time < player.coverReadyAt) return false;
+    if (covers.length >= kCoverMax) return false;
+    final x = player.x.clamp(
+      kCoverHalfWidth + 12,
+      Field.width - kCoverHalfWidth - 12,
+    );
+    final y = player.y - 56;
+    for (final cover in covers) {
+      if ((cover.x - x).abs() < kCoverHalfWidth && (cover.y - y).abs() < 26) {
+        return false;
+      }
+    }
+    covers.add(CoverWall(x: x, y: y));
+    player.coverReadyAt = time + kCoverCooldown;
+    effects.add(
+      BattleEffect(
+        kind: EffectKind.dust,
+        x: x,
+        y: y,
+        radius: 20,
+        duration: 0.4,
+      ),
+    );
+    cues.add(BattleCue.cover);
+    return true;
+  }
+
+  /// 呼叫空袭：以敌军最密集处为中心投下三枚炸弹，落点先有预警。
+  bool callAirstrike() {
+    if (status != BattleStatus.running) return false;
+    if (time < player.airstrikeReadyAt) return false;
+    player.airstrikeReadyAt = time + kAirstrikeCooldown;
+    final target = _densestCluster();
+    final baseX = (target?.x ?? Field.width / 2).clamp(
+      kAirstrikeSpacing + 30,
+      Field.width - kAirstrikeSpacing - 30,
+    );
+    final baseY = (target?.y ?? 150).clamp(90.0, Field.height - 90);
+    for (var i = 0; i < kAirstrikeBombs; i++) {
+      final x = baseX + (i - (kAirstrikeBombs - 1) / 2) * kAirstrikeSpacing;
+      hazards.add(
+        GrenadeHazard(
+          kind: HazardKind.bomb,
+          fromX: x,
+          fromY: -40,
+          toX: x,
+          toY: baseY,
+          duration: kAirstrikeFuse + i * 0.18,
+          damage: kAirstrikeDamage,
+          radius: kAirstrikeRadius,
+          fromPlayer: true,
+        ),
+      );
+    }
+    effects.add(
+      BattleEffect(
+        kind: EffectKind.plane,
+        x: 0,
+        y: 44,
+        radius: 0,
+        duration: 1.6,
+      ),
+    );
+    cues.add(BattleCue.airstrike);
+    return true;
+  }
+
+  /// 敌军最密集的落点：以每个敌军为圆心数一数周围有多少同伴。
+  EnemyUnit? _densestCluster() {
+    EnemyUnit? best;
+    var bestCount = 0;
+    for (final enemy in enemies) {
+      if (enemy.dead) continue;
+      var count = 0;
+      for (final other in enemies) {
+        if (other.dead) continue;
+        if (circleOverlap(
+          enemy.x,
+          enemy.y,
+          other.x,
+          other.y,
+          kAirstrikeRadius,
+        )) {
+          count++;
+        }
+      }
+      if (count <= bestCount) continue;
+      bestCount = count;
+      best = enemy;
+    }
+    return best;
   }
 
   /// 一局的战果，供结算与战绩记录使用。

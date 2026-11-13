@@ -52,9 +52,14 @@ class WaveDirector {
   double get announcementProgress =>
       (waveBreak / bossBreak).clamp(0.0, 1.0);
 
+  /// 当前波次的阵型名称。
+  String get waveName => plan?.name ?? '';
+
   String get announcement {
     if (plan == null) return '';
-    return boss ? '警告 · 敌军头目接近' : '第 $wave 波 · 敌军逼近';
+    if (boss) return '警告 · 敌军头目接近';
+    if (waveName.isEmpty) return '第 $wave 波 · 敌军逼近';
+    return '第 $wave 波 · $waveName';
   }
 
   /// 集结期间战况条使用的短语。

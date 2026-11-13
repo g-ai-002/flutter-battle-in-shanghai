@@ -30,7 +30,7 @@ class SoundService {
   static DateTime _lastShotAt = DateTime.fromMillisecondsSinceEpoch(0);
   static DateTime _lastHitAt = DateTime.fromMillisecondsSinceEpoch(0);
 
-  /// 十种提示音的配方：枪声短促，爆炸低沉，胜负用上下行音阶收束。
+  /// 十二种提示音的配方：枪声短促，爆炸低沉，胜负用上下行音阶收束。
   static const Map<BattleCue, List<SynthNote>> _presets = {
     BattleCue.shot: [
       SynthNote(frequency: 1500, start: 0, duration: 0.045, gain: 0.34, noise: 0.5, damp: 6),
@@ -64,6 +64,17 @@ class SoundService {
       SynthNote(frequency: 110, start: 0, duration: 0.5, gain: 0.55, noise: 0.35, damp: 1.4),
       SynthNote(frequency: 82, start: 0.18, duration: 0.5, noise: 0.3, damp: 1.2),
       SynthNote(frequency: 55, start: 0.36, duration: 0.6, damp: 1.0),
+    ],
+    BattleCue.cover: [
+      SynthNote(frequency: 210, start: 0, duration: 0.09, gain: 0.34, noise: 0.45, damp: 7),
+      SynthNote(frequency: 120, start: 0.03, duration: 0.14, gain: 0.4, noise: 0.3, damp: 5),
+    ],
+    BattleCue.airstrike: [
+      SynthNote(frequency: 1560, start: 0, duration: 0.10, gain: 0.26, damp: 3),
+      SynthNote(frequency: 1180, start: 0.09, duration: 0.10, gain: 0.26, damp: 3),
+      SynthNote(frequency: 860, start: 0.18, duration: 0.12, gain: 0.28, damp: 2.8),
+      SynthNote(frequency: 620, start: 0.28, duration: 0.14, gain: 0.3, damp: 2.6),
+      SynthNote(frequency: 96, start: 0.34, duration: 0.4, gain: 0.4, noise: 0.3, damp: 1.8),
     ],
     BattleCue.victory: [
       SynthNote(frequency: 523.25, start: 0, duration: 0.18, gain: 0.4),
@@ -145,6 +156,8 @@ class SoundService {
       BattleCue.hurt => HapticFeedback.heavyImpact,
       BattleCue.explosion => HapticFeedback.mediumImpact,
       BattleCue.boss => HapticFeedback.heavyImpact,
+      BattleCue.cover => HapticFeedback.lightImpact,
+      BattleCue.airstrike => HapticFeedback.heavyImpact,
       BattleCue.victory => HapticFeedback.vibrate,
       BattleCue.defeat => HapticFeedback.vibrate,
       _ => null,

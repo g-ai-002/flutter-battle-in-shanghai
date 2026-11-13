@@ -127,6 +127,22 @@ class BattleController extends ChangeNotifier {
     return thrown;
   }
 
+  /// 布置工事，成功后立刻刷新按钮状态。
+  bool deployCover() {
+    if (paused || finished) return false;
+    final built = sim.deployCover();
+    if (built) _forceNotify();
+    return built;
+  }
+
+  /// 呼叫空袭，冷却与可用性由模拟判定。
+  bool callAirstrike() {
+    if (paused || finished) return false;
+    final called = sim.callAirstrike();
+    if (called) _forceNotify();
+    return called;
+  }
+
   void togglePause() {
     if (sim.status == BattleStatus.running) {
       sim.pause();
@@ -168,6 +184,10 @@ class BattleController extends ChangeNotifier {
     hash = hash * 31 + sim.player.weapon.index;
     hash = hash * 31 + sim.weaponSecondsLeft.ceil();
     hash = hash * 31 + sim.grenadeCooldownLeft.ceil();
+    hash = hash * 31 + sim.coverCooldownLeft.ceil();
+    hash = hash * 31 + sim.airstrikeCooldownLeft.ceil();
+    hash = hash * 31 + sim.coverCount;
+    hash = hash * 31 + (sim.sheltering ? 1 : 0);
     hash = hash * 31 + sim.remainingEnemies;
     hash = hash * 31 + sim.kills;
     hash = hash * 31 + (boss == null ? -1 : (boss.hpRatio * 100).round());

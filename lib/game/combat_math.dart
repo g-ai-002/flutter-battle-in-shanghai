@@ -37,6 +37,45 @@ bool segmentHitsCircle(
   return circleOverlap(px, py, cx, cy, radius);
 }
 
+/// 线段与矩形是否相交（Liang-Barsky 裁剪）。
+///
+/// 工事是薄薄一面沙袋墙，子弹一步就可能跨过去，同样要用线段判定。
+bool segmentHitsBox(
+  double x1,
+  double y1,
+  double x2,
+  double y2,
+  double left,
+  double top,
+  double right,
+  double bottom,
+) {
+  final dx = x2 - x1;
+  final dy = y2 - y1;
+  var enter = 0.0;
+  var exit = 1.0;
+  bool clip(double p, double q) {
+    if (p == 0) return q >= 0;
+    final t = q / p;
+    if (p < 0) {
+      if (t > exit) return false;
+      if (t > enter) enter = t;
+    } else {
+      if (t < enter) return false;
+      if (t < exit) exit = t;
+    }
+    return true;
+  }
+
+  // 端点已在盒内时直接命中。
+  if (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) return true;
+  return clip(-dx, x1 - left) &&
+      clip(dx, right - x1) &&
+      clip(-dy, y1 - top) &&
+      clip(dy, bottom - y1) &&
+      enter <= exit;
+}
+
 /// 距离 [x], [y] 最近的存活敌军，没有则返回 null。
 EnemyUnit? nearestEnemy(
   Iterable<EnemyUnit> enemies,
