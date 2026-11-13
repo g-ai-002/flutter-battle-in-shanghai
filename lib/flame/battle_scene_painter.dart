@@ -7,6 +7,7 @@ import '../game/battle_sim.dart';
 import '../game/entities.dart';
 import '../theme/battle_painting.dart';
 import '../theme/paint_kit.dart';
+import '../theme/scene_palette.dart';
 import '../utils/constants.dart';
 import 'scene_cache.dart';
 
@@ -16,10 +17,14 @@ import 'scene_cache.dart';
 /// 缩放、抖动与生命周期。
 class BattleScenePainter {
   BattleScenePainter({required this.sim, SceneCache? cache})
-    : _cache = cache ?? SceneCache();
+    : _palette = cache?.palette ?? paletteOf(sim.scene),
+      _cache =
+          cache ??
+          SceneCache(palette: paletteOf(sim.scene), scene: sim.scene);
 
   final BattleSim sim;
   final SceneCache _cache;
+  final ScenePalette _palette;
 
   final Map<String, TextPainter> _textPainters = {};
 
@@ -46,12 +51,14 @@ class BattleScenePainter {
     if (_cache.ready) {
       _cache.drawBase(canvas);
       _cache.drawRoofs(canvas, clock);
+      _cache.drawProps(canvas);
       // 车道线与碎石逐帧滚动，探照灯与街垒贴预渲染好的位图。
-      paintStreetScroll(canvas, field, clock);
+      paintStreetScroll(canvas, field, clock, _palette);
       _cache.drawSearchlight(canvas, clock);
       _cache.drawGlow(canvas, Offset(sim.player.x, sim.player.y - 40));
     } else {
-      paintStreet(canvas, field, clock);
+      paintStreet(canvas, field, clock, _palette);
+      paintSceneProps(canvas, field, sim.scene, _palette);
       _paintAmbientLight(canvas);
     }
     _paintCovers(canvas);
@@ -75,9 +82,9 @@ class BattleScenePainter {
     _paintPopups(canvas);
     if (_cache.ready) {
       _cache.drawBarricade(canvas);
-      paintBarricadeEmbers(canvas, field, clock);
+      paintBarricadeEmbers(canvas, field, clock, _palette);
     } else {
-      paintBarricade(canvas, field, clock);
+      paintBarricade(canvas, field, clock, _palette);
     }
     _paintAnnouncement(canvas);
 
@@ -103,7 +110,7 @@ class BattleScenePainter {
     final center = Offset(sim.player.x, sim.player.y - 40);
     canvas.save();
     canvas.translate(center.dx, center.dy);
-    paintPlayerGlow(canvas, SceneCache.glowRadius);
+    paintPlayerGlow(canvas, SceneCache.glowRadius, _palette);
     canvas.restore();
   }
 

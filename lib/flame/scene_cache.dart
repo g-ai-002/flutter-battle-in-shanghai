@@ -3,15 +3,22 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../game/battle_scenes.dart';
 import '../theme/battle_painting.dart';
+import '../theme/scene_palette.dart';
 import '../utils/constants.dart';
 
 /// 战场静态图层缓存。
 ///
-/// 路面渐变、屋顶瓦片、探照灯、前景街垒、工事与暗角在整局里几乎不变，
-/// 预渲染成位图后每帧只做贴图，省掉重复构建渐变、Path、RRect 与 Paint 的
-/// 开销。渲染设备不支持位图缓存时 [ready] 为 false，调用方回退到直接绘制。
+/// 路面渐变、屋顶瓦片、探照灯、前景街垒、阵地景物、工事与暗角在整局里
+/// 几乎不变，预渲染成位图后每帧只做贴图，省掉重复构建渐变、Path、RRect 与
+/// Paint 的开销。渲染设备不支持位图缓存时 [ready] 为 false，调用方回退到直接绘制。
 class SceneCache {
+  SceneCache({
+    this.palette = ScenePalette.zhabei,
+    this.scene = BattleScene.zhabei,
+  });
+
   static const double _zoom = 2;
   static const double glowRadius = 138;
 
@@ -20,12 +27,17 @@ class SceneCache {
 
   static const Size fieldSize = Size(Field.width, Field.height);
 
+  /// 当前阵地的配色与景物，整局不变。
+  final ScenePalette palette;
+  final BattleScene scene;
+
   ui.Image? _base;
   ui.Image? _roofs;
   ui.Image? _vignette;
   ui.Image? _glow;
   ui.Image? _barricade;
   ui.Image? _searchlight;
+  ui.Image? _props;
   final List<ui.Image?> _covers = List<ui.Image?>.filled(coverWearSteps, null);
 
   final Paint _imagePaint = Paint()..filterQuality = FilterQuality.low;
@@ -41,20 +53,26 @@ class SceneCache {
   @visibleForTesting
   int get layerBuilds => _layerBuilds;
 
+  /// 全部预渲染位图的张数：路面、屋顶、暗角、环境光、探照灯、街垒、景物与工事档位。
+  static const int layerCount = 7 + coverWearSteps;
+
   /// 懒加载：首帧创建，失败后不再重试。
   void ensure() {
     if (_ready || _unavailable) return;
     try {
       _base = _record(fieldSize, _zoom, (canvas) {
-        paintStreetBase(canvas, fieldSize);
+        paintStreetBase(canvas, fieldSize, palette);
       });
       _roofs = _record(
         const Size(Field.width, kRoofTileHeight),
         _zoom,
         (canvas) {
-          paintRoofTile(canvas, fieldSize);
+          paintRoofTile(canvas, fieldSize, palette);
         },
       );
+      _props = _record(fieldSize, _zoom, (canvas) {
+        paintSceneProps(canvas, fieldSize, scene, palette);
+      });
       _vignette = _record(fieldSize, 1, (canvas) {
         paintVignette(canvas, fieldSize);
       });
@@ -63,7 +81,7 @@ class SceneCache {
         1,
         (canvas) {
           canvas.translate(glowRadius, glowRadius);
-          paintPlayerGlow(canvas, glowRadius);
+          paintPlayerGlow(canvas, glowRadius, palette);
         },
       );
       // 探照灯的光柱只有极淡的渐变，1x 足够，省下一半位图内存。
@@ -75,7 +93,7 @@ class SceneCache {
             -(Field.width * 0.3 - kSearchlightWidth / 2),
             -kSearchlightTop,
           );
-          paintSearchlightBeam(canvas, fieldSize);
+          paintSearchlightBeam(canvas, fieldSize, palette);
         },
       );
       _barricade = _record(
@@ -83,7 +101,7 @@ class SceneCache {
         _zoom,
         (canvas) {
           canvas.translate(0, -(Field.height - kBarricadeStripHeight));
-          paintBarricadeBase(canvas, fieldSize);
+          paintBarricadeBase(canvas, fieldSize, palette);
         },
       );
       for (var i = 0; i < coverWearSteps; i++) {
@@ -109,6 +127,12 @@ class SceneCache {
     if (image != null) {
       _draw(canvas, image, Offset.zero & fieldSize);
     }
+  }
+
+  /// 阵地景物：砖墙、江堤或仓库外墙，压在地面之上、单位之下。
+  void drawProps(Canvas canvas) {
+    final image = _props;
+    if (image != null) _draw(canvas, image, Offset.zero & fieldSize);
   }
 
   void drawRoofs(Canvas canvas, double clock) {
@@ -243,6 +267,7 @@ class SceneCache {
     _glow?.dispose();
     _barricade?.dispose();
     _searchlight?.dispose();
+    _props?.dispose();
     for (var i = 0; i < _covers.length; i++) {
       _covers[i]?.dispose();
       _covers[i] = null;
@@ -253,5 +278,6 @@ class SceneCache {
     _glow = null;
     _barricade = null;
     _searchlight = null;
+    _props = null;
   }
 }

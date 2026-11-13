@@ -5,22 +5,18 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../game/battle_config.dart';
+import '../game/battle_scenes.dart';
 import '../utils/constants.dart';
 import 'paint_kit.dart';
+import 'scene_palette.dart';
 
 /// 战场美术：全部用 Canvas 程序化绘制，仓库不存放图片资源。
 ///
 /// 所有函数都在「战场逻辑坐标」下作画（0..300 × 0..400），由调用方先统一
 /// 缩放，因此同一套画法在手机、桌面与 Web 上比例完全一致。
 
-const Color _roadTop = Color(0xFF31261D);
-const Color _roadBottom = Color(0xFF191310);
-const Color _roof = Color(0xFF352B21);
-const Color _roofEdge = Color(0xFF4B3C2D);
-const Color _window = Color(0xFFCD8C4A);
 const Color _sandbag = Color(0xFF8B7A57);
 const Color _sandbagLight = Color(0xFFB09C72);
-const Color _ember = Color(0xFFFFA24A);
 
 /// 屋顶循环块的高度：一个块 92，缓存瓦片取两块以保留窗灯的错落。
 const double kRoofBlock = 92;
@@ -28,14 +24,24 @@ const double kRoofTileHeight = kRoofBlock * 2;
 const double _roofWidth = 27;
 
 /// 背景街道：静态底色 + 滚动屋顶 + 车道线与杂物。
-void paintStreet(Canvas canvas, Size size, double time) {
-  paintStreetBase(canvas, size);
-  paintRoofs(canvas, size, time);
-  paintStreetMotion(canvas, size, time);
+void paintStreet(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
+  paintStreetBase(canvas, size, palette);
+  paintRoofs(canvas, size, time, palette);
+  paintStreetScroll(canvas, size, time, palette);
+  paintSearchlight(canvas, size, time, palette);
 }
 
 /// 静态底层：路面渐变、人行道与路缘。可整张缓存在位图里。
-void paintStreetBase(Canvas canvas, Size size) {
+void paintStreetBase(
+  Canvas canvas,
+  Size size, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   final rect = Offset.zero & size;
   canvas.drawRect(
     rect,
@@ -43,19 +49,23 @@ void paintStreetBase(Canvas canvas, Size size) {
       ..shader = ui.Gradient.linear(
         Offset.zero,
         Offset(0, size.height),
-        const [Color(0xFF3B2E24), _roadTop, _roadBottom],
+        [
+          Color.lerp(palette.roadTop, palette.curb, 0.18)!,
+          palette.roadTop,
+          palette.roadBottom,
+        ],
         const [0, 0.45, 1],
       ),
   );
 
   // 人行道边线与排水沟
-  final walkPaint = fillPaint(const Color(0xFF43362A));
+  final walkPaint = fillPaint(palette.walk);
   canvas.drawRect(Rect.fromLTWH(_roofWidth, 0, 7, size.height), walkPaint);
   canvas.drawRect(
     Rect.fromLTWH(size.width - _roofWidth - 7, 0, 7, size.height),
     walkPaint,
   );
-  final curb = fillPaint(const Color(0xFF5E4C38));
+  final curb = fillPaint(palette.curb);
   canvas.drawRect(Rect.fromLTWH(_roofWidth + 7, 0, 1.6, size.height), curb);
   canvas.drawRect(
     Rect.fromLTWH(size.width - _roofWidth - 8.6, 0, 1.6, size.height),
@@ -64,9 +74,13 @@ void paintStreetBase(Canvas canvas, Size size) {
 }
 
 /// 一个屋顶循环块：左右两侧各一块，缓存时直接渲染整块瓦片。
-void paintRoofTile(Canvas canvas, Size size) {
-  final roofPaint = fillPaint(_roof);
-  final edgePaint = strokePaint(_roofEdge, 0.8);
+void paintRoofTile(
+  Canvas canvas,
+  Size size, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
+  final roofPaint = fillPaint(palette.roof);
+  final edgePaint = strokePaint(palette.roofEdge, 0.8);
   for (var i = 0; i < kRoofTileHeight ~/ kRoofBlock; i++) {
     final y = i * kRoofBlock;
     for (final left in [true, false]) {
@@ -81,13 +95,13 @@ void paintRoofTile(Canvas canvas, Size size) {
       );
       canvas.drawRect(
         Rect.fromLTWH(x + 5, y + 40, 16, 3),
-        fillPaint(const Color(0xFF453727)),
+        fillPaint(palette.roofEdge),
       );
       // 偶尔亮着的窗
       if (((i + (left ? 0 : 3)) * 37) % 5 == 0) {
         canvas.drawRect(
           Rect.fromLTWH(x + 9, y + 58, 8, 6),
-          fillPaint(_window.withValues(alpha: 0.55)),
+          fillPaint(palette.window.withValues(alpha: 0.55)),
         );
       }
     }
@@ -95,36 +109,40 @@ void paintRoofTile(Canvas canvas, Size size) {
 }
 
 /// 滚动屋顶：以 [kRoofTileHeight] 为一个循环向下平移。
-void paintRoofs(Canvas canvas, Size size, double time) {
+void paintRoofs(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   final shift = (time * 46) % kRoofTileHeight;
   for (var y = shift - kRoofTileHeight; y < size.height; y += kRoofTileHeight) {
     canvas.save();
     canvas.translate(0, y);
-    paintRoofTile(canvas, size);
+    paintRoofTile(canvas, size, palette);
     canvas.restore();
   }
 }
 
-/// 随前进感滚动的车道线、碎石与探照灯。
-void paintStreetMotion(Canvas canvas, Size size, double time) {
-  paintStreetScroll(canvas, size, time);
-  paintSearchlight(canvas, size, time);
-}
-
 /// 车道线、碎石与弹坑的滚动部分；探照灯单独成层，便于缓存成位图。
-void paintStreetScroll(Canvas canvas, Size size, double time) {
+void paintStreetScroll(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   // 车道虚线：随画面下移，制造前进感。
   const dash = 26.0;
   const gap = 30.0;
   final dashShift = (time * 132) % (dash + gap);
-  final dashPaint = fillPaint(const Color(0xFF9C8A6A));
+  final dashPaint = fillPaint(palette.lane);
   for (var y = -dash - gap + dashShift; y < size.height; y += dash + gap) {
     canvas.drawRect(
       Rect.fromLTWH(size.width / 2 - 2.4, y, 4.8, dash),
       dashPaint,
     );
   }
-  final lanePaint = fillPaint(const Color(0xFF5E5140));
+  final lanePaint = fillPaint(palette.lane.withValues(alpha: 0.55));
   for (final x in [_roofWidth + 34, size.width - _roofWidth - 34]) {
     for (var y = -40 + dashShift * 0.6; y < size.height; y += 70) {
       canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 22), lanePaint);
@@ -132,7 +150,7 @@ void paintStreetScroll(Canvas canvas, Size size, double time) {
   }
 
   // 弹坑与碎石：固定伪随机，滚动时不会闪烁。
-  final rubble = fillPaint(const Color(0xFF4A3A2B));
+  final rubble = fillPaint(palette.rubble);
   for (var i = 0; i < 14; i++) {
     final seed = i * 73.7;
     final baseY = (seed * 13) % size.height;
@@ -157,22 +175,34 @@ const double kSearchlightHeight = 220;
 const double kSearchlightTop = -10;
 
 /// 远处的探照灯：一道缓慢摆动的光柱，平移量随时间变化。
-void paintSearchlight(Canvas canvas, Size size, double time) {
+void paintSearchlight(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   final sway = math.sin(time * 0.35) * 26;
   canvas.save();
   canvas.translate(sway, 0);
-  paintSearchlightBeam(canvas, size);
+  paintSearchlightBeam(canvas, size, palette);
   canvas.restore();
 }
 
 /// 零摆位的光柱本体，供直接绘制与静态图层缓存共用。
-void paintSearchlightBeam(Canvas canvas, Size size) {
+void paintSearchlightBeam(
+  Canvas canvas,
+  Size size, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   final x = size.width * 0.3;
   final beam = linearPaint(
-    0x51000 + size.width.round(),
+    0x51000 + size.width.round() * 8 + palette.id,
     Offset(x, 0),
     Offset(x, 210),
-    const [Color(0x22FFD9A0), Color(0x00FFD9A0)],
+    [
+      palette.beam.withValues(alpha: 0.13),
+      palette.beam.withValues(alpha: 0),
+    ],
     const [0, 1],
   );
   final path = Path()
@@ -185,14 +215,18 @@ void paintSearchlightBeam(Canvas canvas, Size size) {
 }
 
 /// 玩家周围的暖色环境光：缓存成图后按位置贴图，避免每帧新建渐变。
-void paintPlayerGlow(Canvas canvas, double radius) {
+void paintPlayerGlow(
+  Canvas canvas,
+  double radius, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   canvas.drawCircle(
     Offset.zero,
     radius,
     Paint()
       ..shader = ui.Gradient.radial(Offset.zero, radius, [
-        const Color(0x1FFFD9A0),
-        const Color(0x00FFD9A0),
+        palette.beam.withValues(alpha: 0.12),
+        palette.beam.withValues(alpha: 0),
       ]),
   );
 }
@@ -702,13 +736,22 @@ void paintAirstrikePlane(Canvas canvas, Size size, double progress) {
 const double kBarricadeStripHeight = 36;
 
 /// 前景沙袋与铁丝网：压在战场底部，增强纵深。
-void paintBarricade(Canvas canvas, Size size, double time) {
-  paintBarricadeBase(canvas, size);
-  paintBarricadeEmbers(canvas, size, time);
+void paintBarricade(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
+  paintBarricadeBase(canvas, size, palette);
+  paintBarricadeEmbers(canvas, size, time, palette);
 }
 
 /// 不随时间变化的沙袋与铁丝网，可整条缓存成位图。
-void paintBarricadeBase(Canvas canvas, Size size) {
+void paintBarricadeBase(
+  Canvas canvas,
+  Size size, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
   final rowY = size.height - 7;
   for (var i = 0; i < 9; i++) {
     final x = 6.0 + i * 34;
@@ -724,7 +767,7 @@ void paintBarricadeBase(Canvas canvas, Size size) {
     canvas.drawLine(
       Offset(x + 4, rowY + 4),
       Offset(x + 24, rowY + 4),
-      strokePaint(const Color(0x44FFF0D0), 0.8),
+      strokePaint(palette.beam.withValues(alpha: 0.27), 0.8),
     );
   }
   // 铁丝网
@@ -741,12 +784,136 @@ void paintBarricadeBase(Canvas canvas, Size size) {
 }
 
 /// 地面余烬：只随时间横向漂移，单独绘制以保留动态感。
-void paintBarricadeEmbers(Canvas canvas, Size size, double time) {
-  final ember = fillPaint(_ember.withValues(alpha: 0.5));
+void paintBarricadeEmbers(
+  Canvas canvas,
+  Size size,
+  double time, [
+  ScenePalette palette = ScenePalette.zhabei,
+]) {
+  final ember = fillPaint(palette.ember.withValues(alpha: 0.5));
   for (var i = 0; i < 6; i++) {
     final x = (i * 61.0 + time * 8) % size.width;
     final y = size.height - 18 - (i * 13 % 10);
     canvas.drawCircle(Offset(x, y), 0.9, ember);
+  }
+}
+
+/// 阵地专属景物：闸北的断墙瓦砾、外滩的江堤栏杆、四行仓库的砖墙木箱。
+///
+/// 整层不随时间变化，由 [SceneCache] 预渲染成位图，战斗中不再重复绘制。
+void paintSceneProps(
+  Canvas canvas,
+  Size size,
+  BattleScene scene,
+  ScenePalette palette,
+) {
+  switch (scene) {
+    case BattleScene.zhabei:
+      // 塌了半边的砖墙与散落的瓦砾。
+      final brick = fillPaint(const Color(0xFF4A3628));
+      final mortar = strokePaint(const Color(0xFF684C38), 0.7);
+      for (final x in [34.0, 232.0]) {
+        canvas.drawRect(Rect.fromLTWH(x, 96, 34, 46), brick);
+        canvas.drawRect(Rect.fromLTWH(x, 96, 34, 46), mortar);
+        for (var row = 1; row < 4; row++) {
+          canvas.drawLine(
+            Offset(x, 96 + row * 11.5),
+            Offset(x + 34, 96 + row * 11.5),
+            mortar,
+          );
+        }
+        canvas.drawLine(
+          Offset(x + 17, 96),
+          Offset(x + 17, 142),
+          mortar,
+        );
+      }
+      final rubble = fillPaint(palette.rubble);
+      for (var i = 0; i < 7; i++) {
+        final seed = i * 53.9;
+        canvas.drawCircle(
+          Offset(44 + (seed * 9) % 210, 196 + (seed * 5) % 150),
+          3 + (seed % 4),
+          rubble,
+        );
+      }
+    case BattleScene.bund:
+      // 远处江面：横向波纹与对岸灯火。
+      final water = fillPaint(const Color(0xFF1B2733));
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, 42), water);
+      final shimmer = strokePaint(
+        palette.beam.withValues(alpha: 0.20),
+        0.8,
+      );
+      for (var i = 0; i < 7; i++) {
+        final y = 6.0 + i * 5;
+        final offset = (i * 37) % 60.0;
+        canvas.drawLine(Offset(offset, y), Offset(offset + 46, y), shimmer);
+      }
+      for (var i = 0; i < 6; i++) {
+        canvas.drawCircle(
+          Offset(30 + i * 46.0, 3.5),
+          1.1,
+          fillPaint(palette.window.withValues(alpha: 0.45)),
+        );
+      }
+      // 江堤石栏与两盏路灯。
+      final rail = strokePaint(const Color(0xFF5A6672), 1.0);
+      canvas.drawLine(const Offset(0, 46), Offset(size.width, 46), rail);
+      for (var i = 0; i < 8; i++) {
+        canvas.drawLine(
+          Offset(12 + i * 38.0, 40),
+          Offset(12 + i * 38.0, 52),
+          rail,
+        );
+      }
+      for (final x in [46.0, 254.0]) {
+        canvas.drawLine(
+          Offset(x, 60),
+          Offset(x, 108),
+          strokePaint(const Color(0xFF3B434C), 1.6),
+        );
+        canvas.drawCircle(
+          Offset(x, 58),
+          2.2,
+          fillPaint(palette.window.withValues(alpha: 0.75)),
+        );
+      }
+    case BattleScene.warehouse:
+      // 仓库砖墙与堆在墙根的木箱。
+      final wall = fillPaint(const Color(0xFF4C3128));
+      final brick = strokePaint(const Color(0xFF6B4736), 0.6);
+      for (final x in [27.0, 251.0]) {
+        canvas.drawRect(Rect.fromLTWH(x, 56, 22, size.height - 140), wall);
+        for (var y = 56.0; y < size.height - 84; y += 9) {
+          canvas.drawLine(Offset(x, y), Offset(x + 22, y), brick);
+        }
+      }
+      final crate = fillPaint(const Color(0xFF6B5233));
+      final crateEdge = strokePaint(const Color(0xFFC79A5B), 1.0);
+      for (final spot in const [
+        Offset(48, 176),
+        Offset(66, 214),
+        Offset(246, 250),
+      ]) {
+        final box = Rect.fromCenter(center: spot, width: 16, height: 14);
+        canvas.drawRect(box, crate);
+        canvas.drawRect(box, crateEdge);
+        canvas.drawLine(
+          box.topLeft,
+          box.bottomRight,
+          strokePaint(const Color(0xFFC79A5B), 0.7),
+        );
+      }
+      final smear = fillPaint(const Color(0x33000000));
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: const Offset(150, 150),
+          width: 86,
+          height: 26,
+        ),
+        smear,
+      );
   }
 }
 

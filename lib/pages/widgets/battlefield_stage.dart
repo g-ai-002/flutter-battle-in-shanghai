@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../flame/battle_game.dart';
 import '../../game/battle_config.dart';
+import '../../game/battle_scenes.dart';
 import '../../theme/battle_painting.dart';
+import '../../theme/scene_palette.dart';
 import '../../utils/battlefield_layout.dart';
 import '../../utils/constants.dart';
 
@@ -71,9 +73,16 @@ class BattlefieldStage extends StatelessWidget {
 
 /// 战场的静态缩略图：首页主视觉用，不需要启动 Flame。
 class BattlefieldPreview extends StatelessWidget {
-  const BattlefieldPreview({super.key, this.maxWidth = 320});
+  const BattlefieldPreview({
+    super.key,
+    this.maxWidth = 320,
+    this.scene = BattleScene.zhabei,
+  });
 
   final double maxWidth;
+
+  /// 首页预览跟随当前选择的阵地，换关时街景随之变化。
+  final BattleScene scene;
 
   @override
   Widget build(BuildContext context) {
@@ -85,8 +94,8 @@ class BattlefieldPreview extends StatelessWidget {
             width: width,
             height: width * Field.height / Field.width,
             // 首页预览是静态画，单独成层后滚动页面不会反复重绘。
-            child: const RepaintBoundary(
-              child: CustomPaint(painter: _PreviewPainter()),
+            child: RepaintBoundary(
+              child: CustomPaint(painter: _PreviewPainter(scene)),
             ),
           ),
         );
@@ -96,7 +105,9 @@ class BattlefieldPreview extends StatelessWidget {
 }
 
 class _PreviewPainter extends CustomPainter {
-  const _PreviewPainter();
+  const _PreviewPainter(this.scene);
+
+  final BattleScene scene;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -104,8 +115,10 @@ class _PreviewPainter extends CustomPainter {
     canvas.save();
     canvas.scale(scale);
     const field = Size(Field.width, Field.height);
-    // 首页预览复用同一套战场画法：街道、两名推进中的敌军、守军与街垒。
-    paintStreet(canvas, field, 0);
+    final palette = paletteOf(scene);
+    // 首页预览复用同一套战场画法：街道、阵地景物、两名推进中的敌军、守军与街垒。
+    paintStreet(canvas, field, 0, palette);
+    paintSceneProps(canvas, field, scene, palette);
     paintSoldier(
       canvas,
       const Offset(96, 168),
@@ -140,11 +153,12 @@ class _PreviewPainter extends CustomPainter {
       helmet: const Color(0xFF56674A),
       accent: const Color(0xFFC2452F),
     );
-    paintBarricade(canvas, field, 0);
+    paintBarricade(canvas, field, 0, palette);
     paintVignette(canvas, field);
     canvas.restore();
   }
 
   @override
-  bool shouldRepaint(_PreviewPainter oldDelegate) => false;
+  bool shouldRepaint(_PreviewPainter oldDelegate) =>
+      oldDelegate.scene != scene;
 }
