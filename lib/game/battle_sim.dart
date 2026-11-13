@@ -2,9 +2,13 @@ import 'dart:math' as math;
 import 'dart:ui' show Color;
 
 import '../utils/constants.dart';
+import 'airstrike.dart';
 import 'battle_config.dart';
+import 'battle_feedback.dart';
 import 'combat_math.dart';
+import 'cover_field.dart';
 import 'entities.dart';
+import 'supply_drop.dart';
 import 'wave_director.dart';
 import 'wave_plan.dart';
 
@@ -13,22 +17,18 @@ import 'wave_plan.dart';
 /// 渲染层只读取实体列表，输入通过 [movePlayer] / [throwGrenade] 进入，
 /// 声音等反馈以 [cues] 队列交给控制器。这样逻辑可以在测试里直接推进。
 class BattleSim {
-  BattleSim({
-    required this.mode,
-    required this.difficulty,
-    math.Random? random,
-  }) : _random = random ?? math.Random() {
-    _waves = WaveDirector(
-      mode: mode,
-      difficulty: difficulty,
-      random: _random,
-    );
+  BattleSim({required this.mode, required this.difficulty, math.Random? random})
+    : _random = random ?? math.Random() {
+    _feedback = BattleFeedback(random: _random);
+    _waves = WaveDirector(mode: mode, difficulty: difficulty, random: _random);
     player = PlayerSoldier(x: Field.width / 2, y: Field.playerStartY);
   }
 
   final BattleMode mode;
   final Difficulty difficulty;
   final math.Random _random;
+  late final BattleFeedback _feedback;
+  final CoverField _covers = CoverField();
   late final WaveDirector _waves;
 
   late PlayerSoldier player;
@@ -40,30 +40,30 @@ class BattleSim {
   int combo = 0;
   int maxCombo = 0;
   double comboTimer = 0;
-  double shake = 0;
 
   final List<EnemyUnit> enemies = [];
   final List<BattleBullet> playerShots = [];
   final List<BattleBullet> enemyShots = [];
   final List<GrenadeHazard> hazards = [];
   final List<PickupItem> pickups = [];
-  final List<CoverWall> covers = [];
-  final List<BattleEffect> effects = [];
-  final List<ScorePopup> popups = [];
-  final List<Particle> particles = [];
-
-  /// 粒子对象池：爆炸频繁，复用死亡粒子避免每帧产生垃圾。
-  final List<Particle> _particlePool = [];
 
   /// 粒子上限：满屏爆炸时保证绘制量可控。
-  static const int maxParticles = 180;
-  static const int _maxPooledParticles = 96;
+  static const int maxParticles = BattleFeedback.maxParticles;
+
+  List<CoverWall> get covers => _covers.walls;
+  List<BattleEffect> get effects => _feedback.effects;
+  List<ScorePopup> get popups => _feedback.popups;
+  List<Particle> get particles => _feedback.particles;
 
   /// 待消费的播放提示，控制器取走后清空。
-  final List<BattleCue> cues = [];
+  List<BattleCue> get cues => _feedback.cues;
+
+  double get shake => _feedback.shake;
+  set shake(double value) => _feedback.shake = value;
 
   bool get running => status == BattleStatus.running;
-  bool get finished => status == BattleStatus.won || status == BattleStatus.lost;
+  bool get finished =>
+      status == BattleStatus.won || status == BattleStatus.lost;
 
   int get wave => _waves.wave;
   double get waveBreak => _waves.waveBreak;
@@ -112,30 +112,20 @@ class BattleSim {
     return math.min(1 + tier * kComboStepBonus, kMaxComboMultiplier);
   }
 
-  double get grenadeCooldownLeft =>
-      math.max(0, player.grenadeReadyAt - time);
+  double get grenadeCooldownLeft => math.max(0, player.grenadeReadyAt - time);
 
   double get coverCooldownLeft => math.max(0, player.coverReadyAt - time);
 
   double get airstrikeCooldownLeft =>
       math.max(0, player.airstrikeReadyAt - time);
 
-  int get coverCount => covers.length;
-  int get coverLimit => kCoverMax;
+  int get coverCount => _covers.count;
+  int get coverLimit => CoverField.limit;
 
   /// 玩家是否蹲在工事后方的掩护范围内。
-  bool get sheltering {
-    for (final cover in covers) {
-      if ((player.x - cover.x).abs() > kCoverHalfWidth + 10) continue;
-      final behind = player.y - cover.y;
-      if (behind < 0 || behind > kCoverShelterRange) continue;
-      return true;
-    }
-    return false;
-  }
+  bool get sheltering => _covers.shelteredAt(player.x, player.y);
 
-  double get weaponSecondsLeft =>
-      player.weapon == WeaponKind.pistol
+  double get weaponSecondsLeft => player.weapon == WeaponKind.pistol
       ? 0
       : math.max(0, player.weaponUntil - time);
 
@@ -146,16 +136,8 @@ class BattleSim {
     if (status != BattleStatus.ready) return;
     status = BattleStatus.running;
     player.airstrikeReadyAt = time + kAirstrikeInitialDelay;
-    _layStartingCovers();
+    _covers.layStarting();
     _beginWave(1);
-  }
-
-  /// 开局的两处沙袋工事，让玩家一上来就有掩体可用。
-  void _layStartingCovers() {
-    covers
-      ..clear()
-      ..add(CoverWall(x: 78, y: 262))
-      ..add(CoverWall(x: Field.width - 78, y: 262));
   }
 
   void pause() {
@@ -174,20 +156,13 @@ class BattleSim {
     combo = 0;
     maxCombo = 0;
     comboTimer = 0;
-    shake = 0;
     enemies.clear();
     playerShots.clear();
     enemyShots.clear();
     hazards.clear();
     pickups.clear();
-    covers.clear();
-    effects.clear();
-    popups.clear();
-    for (final particle in particles) {
-      _recycleParticle(particle);
-    }
-    particles.clear();
-    cues.clear();
+    _covers.clear();
+    _feedback.clear();
     _waves.reset();
     player = PlayerSoldier(x: Field.width / 2, y: Field.playerStartY);
     start();
@@ -230,27 +205,8 @@ class BattleSim {
   }
 
   void _updateDecorations(double dt) {
-    for (final effect in effects) {
-      effect.age += dt;
-    }
-    effects.removeWhere((effect) => effect.done);
-    for (final popup in popups) {
-      popup.age += dt;
-    }
-    popups.removeWhere((popup) => popup.done);
-    for (final particle in particles) {
-      particle.life -= dt;
-      particle.x += particle.vx * dt;
-      particle.y += particle.vy * dt;
-      particle.vx *= 0.98;
-      particle.vy += 42 * dt;
-    }
-    for (var i = particles.length - 1; i >= 0; i--) {
-      if (particles[i].life > 0) continue;
-      _recycleParticle(particles.removeAt(i));
-    }
+    _feedback.tick(dt);
     _waves.tickAnnouncement(dt);
-    if (shake > 0) shake = math.max(0, shake - dt * 22);
   }
 
   void _updatePlayer(double dt) {
@@ -258,7 +214,7 @@ class BattleSim {
     if (player.weapon != WeaponKind.pistol && time >= player.weaponUntil) {
       player.weapon = WeaponKind.pistol;
       player.weaponUntil = 0;
-      _popup('弹药耗尽', player.x, player.y - 20, const Color(0xFFBFC7C9));
+      _feedback.popup('弹药耗尽', player.x, player.y - 20, const Color(0xFFBFC7C9));
     }
     final spec = player.weaponSpec;
     player.fireCooldown -= dt;
@@ -289,21 +245,19 @@ class BattleSim {
       );
     }
     player.muzzle = 0.07;
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.muzzle,
-        x: player.x,
-        y: player.y - 14,
-        radius: 8,
-        duration: 0.08,
-      ),
+    _feedback.effect(
+      EffectKind.muzzle,
+      player.x,
+      player.y - 14,
+      radius: 8,
+      duration: 0.08,
     );
-    cues.add(BattleCue.shot);
-    shake = math.max(shake, 1.2);
+    _feedback.cue(BattleCue.shot);
+    _feedback.kick(1.2);
   }
 
   void _beginWave(int index) {
-    cues.add(_waves.begin(index, time));
+    _feedback.cue(_waves.begin(index, time));
   }
 
   void _spawnDue() {
@@ -315,12 +269,7 @@ class BattleSim {
   double get _enemyHpScale => difficulty.hpScale * _waves.hpMultiplier;
 
   void _spawn(SpawnOrder order) {
-    _addEnemy(
-      order.kind,
-      x: order.x,
-      y: Field.enemyTop,
-      holdY: order.holdY,
-    );
+    _addEnemy(order.kind, x: order.x, y: Field.enemyTop, holdY: order.holdY);
   }
 
   void _addEnemy(
@@ -335,7 +284,7 @@ class BattleSim {
     enemies.add(
       EnemyUnit(
         kind: kind,
-        x: x.clamp(24.0, Field.width - 24),
+        x: x.clamp(24.0, Field.width - 24).toDouble(),
         y: y,
         hp: hp,
         maxHp: hp,
@@ -357,45 +306,38 @@ class BattleSim {
         case EnemyKind.grenadier:
           _holdAndAttack(enemy, dt, interval: 2.4);
         case EnemyKind.armoredCar:
-          _holdAndAttack(enemy, dt, interval: 2.2, strafe: 46, strafeSpeed: 0.7);
+          _holdAndAttack(
+            enemy,
+            dt,
+            interval: 2.2,
+            strafe: 46,
+            strafeSpeed: 0.7,
+          );
         case EnemyKind.boss:
           _updateBoss(enemy, dt);
       }
-      enemy.x = enemy.x.clamp(20.0, Field.width - 20);
+      enemy.x = enemy.x.clamp(20.0, Field.width - 20).toDouble();
       _resolveContact(enemy);
     }
   }
 
   /// 步兵推进：撞上工事就停下挖沙袋，把工事当成一道门槛。
   void _advanceInfantry(EnemyUnit enemy, double dt) {
-    final cover = _coverAt(enemy.x, enemy.y);
+    final cover = _covers.blockingAt(enemy.x, enemy.y);
     if (cover == null) {
       _marchDown(enemy, dt, sway: 15, swaySpeed: 2.6);
       return;
     }
-    cover.hp -= kCoverGnawDamage * dt;
-    cover.shake = 1;
+    _covers.gnaw(cover, dt);
     if (effects.length < 24 && _random.nextDouble() < dt * 2.5) {
-      effects.add(
-        BattleEffect(
-          kind: EffectKind.dust,
-          x: cover.x + (enemy.x - cover.x) * 0.6,
-          y: cover.y - 4,
-          radius: 10,
-          duration: 0.4,
-        ),
+      _feedback.effect(
+        EffectKind.dust,
+        cover.x + (enemy.x - cover.x) * 0.6,
+        cover.y - 4,
+        radius: 10,
+        duration: 0.4,
       );
     }
-  }
-
-  /// 指定位置前方是否有工事挡住去路。
-  CoverWall? _coverAt(double x, double y) {
-    for (final cover in covers) {
-      if ((x - cover.x).abs() > kCoverHalfWidth + 4) continue;
-      if (y < cover.top - 4 || y > cover.bottom + 12) continue;
-      return cover;
-    }
-    return null;
   }
 
   void _marchDown(
@@ -426,7 +368,8 @@ class BattleSim {
       enemy.y = math.min(enemy.holdY, enemy.y + spec.speed * dt);
       return;
     }
-    enemy.x += math.sin(enemy.timer * strafeSpeed + enemy.bobSeed) * strafe * dt;
+    enemy.x +=
+        math.sin(enemy.timer * strafeSpeed + enemy.bobSeed) * strafe * dt;
     enemy.attackTimer -= dt;
     if (enemy.attackTimer > 0) return;
     enemy.attackTimer = interval * (0.85 + _random.nextDouble() * 0.35);
@@ -463,7 +406,7 @@ class BattleSim {
             fromPlayer: false,
           ),
         );
-        cues.add(BattleCue.enemyShot);
+        _feedback.cue(BattleCue.enemyShot);
       case EnemyKind.armoredCar:
         for (var i = -1; i <= 1; i++) {
           _shootAt(
@@ -480,14 +423,12 @@ class BattleSim {
       case EnemyKind.boss:
         _bossAttack(enemy, scale);
     }
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.muzzle,
-        x: enemy.x,
-        y: enemy.y + 8,
-        radius: enemy.isBoss ? 16 : 8,
-        duration: 0.1,
-      ),
+    _feedback.effect(
+      EffectKind.muzzle,
+      enemy.x,
+      enemy.y + 8,
+      radius: enemy.isBoss ? 16 : 8,
+      duration: 0.1,
     );
   }
 
@@ -514,7 +455,7 @@ class BattleSim {
         color: color,
       ),
     );
-    cues.add(BattleCue.enemyShot);
+    _feedback.cue(BattleCue.enemyShot);
   }
 
   void _updateBoss(EnemyUnit enemy, double dt) {
@@ -548,7 +489,7 @@ class BattleSim {
             ),
           );
         }
-        cues.add(BattleCue.enemyShot);
+        _feedback.cue(BattleCue.enemyShot);
       case 1:
         for (var i = -1; i <= 1; i++) {
           _shootAt(
@@ -572,7 +513,7 @@ class BattleSim {
             hpFactor: 0.8,
           );
         }
-        cues.add(BattleCue.enemyShot);
+        _feedback.cue(BattleCue.enemyShot);
       case 3:
         _shootAt(
           enemy,
@@ -636,43 +577,23 @@ class BattleSim {
   }
 
   void _explode(GrenadeHazard hazard) {
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.explosion,
-        x: hazard.toX,
-        y: hazard.toY,
-        radius: hazard.radius,
-        duration: 0.5,
-      ),
+    _feedback.effect(
+      EffectKind.explosion,
+      hazard.toX,
+      hazard.toY,
+      radius: hazard.radius,
+      duration: 0.5,
     );
-    _spawnParticles(hazard.toX, hazard.toY, hazard.radius, 10);
-    cues.add(BattleCue.explosion);
-    shake = math.max(shake, hazard.kind == HazardKind.bomb ? 11 : 8);
+    _feedback.burst(hazard.toX, hazard.toY, hazard.radius, 10);
+    _feedback.cue(BattleCue.explosion);
+    _feedback.kick(hazard.kind == HazardKind.bomb ? 11 : 8);
     // 任何一次落点爆炸都会削掉附近的沙袋。
-    for (final cover in covers) {
-      if (!circleOverlap(
-        cover.x,
-        cover.y,
-        hazard.toX,
-        hazard.toY,
-        hazard.radius + kCoverHalfWidth,
-      )) {
-        continue;
-      }
-      cover.hp -= hazard.damage * 0.5;
-      cover.shake = 1;
-    }
+    _covers.blast(hazard.toX, hazard.toY, hazard.radius, hazard.damage * 0.5);
     if (hazard.fromPlayer) {
       for (final enemy in enemies) {
         if (enemy.dead) continue;
         final limit = hazard.radius + enemy.spec.radius;
-        if (circleOverlap(
-          enemy.x,
-          enemy.y,
-          hazard.toX,
-          hazard.toY,
-          limit,
-        )) {
+        if (circleOverlap(enemy.x, enemy.y, hazard.toX, hazard.toY, limit)) {
           _damageEnemy(enemy, hazard.damage);
         }
       }
@@ -697,26 +618,19 @@ class BattleSim {
 
   /// 工事寿命与受击抖动；挖穿或到期后留下扬起的沙尘。
   void _updateCovers(double dt) {
-    for (final cover in covers) {
-      cover.life -= dt;
-      cover.shake = math.max(0, cover.shake - dt * 3.2);
-    }
-    for (var i = covers.length - 1; i >= 0; i--) {
-      final cover = covers[i];
-      if (!cover.ruined) continue;
-      covers.removeAt(i);
-      effects.add(
-        BattleEffect(
-          kind: EffectKind.dust,
-          x: cover.x,
-          y: cover.y,
-          radius: 26,
-          duration: 0.55,
-        ),
-      );
-      _spawnParticles(cover.x, cover.y, 16, 6);
-      cues.add(BattleCue.cover);
-    }
+    _covers.tick(dt, onRuined: _ruinCover);
+  }
+
+  void _ruinCover(CoverWall cover) {
+    _feedback.effect(
+      EffectKind.dust,
+      cover.x,
+      cover.y,
+      radius: 26,
+      duration: 0.55,
+    );
+    _feedback.burst(cover.x, cover.y, 16, 6);
+    _feedback.cue(BattleCue.cover);
   }
 
   void _resolveBulletHits() {
@@ -764,34 +678,17 @@ class BattleSim {
   }
 
   bool _absorbByCover(BattleBullet bullet) {
-    for (final cover in covers) {
-      if (!segmentHitsBox(
-        bullet.prevX,
-        bullet.prevY,
-        bullet.x,
-        bullet.y,
-        cover.left,
-        cover.top,
-        cover.right,
-        cover.bottom,
-      )) {
-        continue;
-      }
-      cover.hp -= bullet.damage;
-      cover.shake = 1;
-      effects.add(
-        BattleEffect(
-          kind: EffectKind.dust,
-          x: bullet.x,
-          y: bullet.y,
-          radius: 7,
-          duration: 0.22,
-        ),
-      );
-      bullet.damage = 0;
-      return true;
-    }
-    return false;
+    final cover = _covers.absorb(bullet);
+    if (cover == null) return false;
+    _feedback.effect(
+      EffectKind.dust,
+      bullet.x,
+      bullet.y,
+      radius: 7,
+      duration: 0.22,
+    );
+    bullet.damage = 0;
+    return true;
   }
 
   void _resolvePickupGrab() {
@@ -804,28 +701,31 @@ class BattleSim {
   }
 
   void _applyPickup(PickupItem pickup) {
-    cues.add(BattleCue.pickup);
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.pickup,
-        x: pickup.x,
-        y: pickup.y,
-        radius: 18,
-        duration: 0.35,
-      ),
+    _feedback.cue(BattleCue.pickup);
+    _feedback.effect(
+      EffectKind.pickup,
+      pickup.x,
+      pickup.y,
+      radius: 18,
+      duration: 0.35,
     );
     switch (pickup.kind) {
       case PickupKind.medkit:
         player.hp = math.min(kPlayerMaxHp, player.hp + 30);
-        _popup('急救 +30', pickup.x, pickup.y, const Color(0xFF8FD16A));
+        _feedback.popup('急救 +30', pickup.x, pickup.y, const Color(0xFF8FD16A));
       case PickupKind.shield:
         player.shieldUntil = time + kPlayerMaxShieldSeconds;
-        _popup('钢盔 6s', pickup.x, pickup.y, const Color(0xFF7FC4E8));
+        _feedback.popup('钢盔 6s', pickup.x, pickup.y, const Color(0xFF7FC4E8));
       case PickupKind.ammo:
         final next = _random.nextBool() ? WeaponKind.smg : WeaponKind.shotgun;
         player.weapon = next;
         player.weaponUntil = time + WeaponSpec.specs[next]!.duration;
-        _popup(next.label, pickup.x, pickup.y, const Color(0xFFFFD166));
+        _feedback.popup(
+          next.label,
+          pickup.x,
+          pickup.y,
+          const Color(0xFFFFD166),
+        );
     }
   }
 
@@ -833,46 +733,45 @@ class BattleSim {
     if (enemy.dead) return;
     enemy.hp -= damage;
     enemy.hitFlash = 1;
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.hit,
-        x: enemy.x,
-        y: enemy.y,
-        radius: 7,
-        duration: 0.18,
-      ),
+    _feedback.effect(
+      EffectKind.hit,
+      enemy.x,
+      enemy.y,
+      radius: 7,
+      duration: 0.18,
     );
     if (enemy.hp > 0) {
-      cues.add(BattleCue.hit);
+      _feedback.cue(BattleCue.hit);
       return;
     }
     enemy.dead = true;
-    effects.add(
-      BattleEffect(
-        kind: enemy.isBoss ? EffectKind.bossDown : EffectKind.boom,
-        x: enemy.x,
-        y: enemy.y,
-        radius: enemy.spec.radius * 2.2,
-        duration: enemy.isBoss ? 1.1 : 0.45,
-      ),
+    _feedback.effect(
+      enemy.isBoss ? EffectKind.bossDown : EffectKind.boom,
+      enemy.x,
+      enemy.y,
+      radius: enemy.spec.radius * 2.2,
+      duration: enemy.isBoss ? 1.1 : 0.45,
     );
-    _spawnParticles(enemy.x, enemy.y, enemy.spec.radius * 1.8, enemy.isBoss ? 26 : 8);
-    cues.add(BattleCue.explosion);
-    shake = math.max(shake, enemy.isBoss ? 14 : 5);
+    _feedback.burst(
+      enemy.x,
+      enemy.y,
+      enemy.spec.radius * 1.8,
+      enemy.isBoss ? 26 : 8,
+    );
+    _feedback.cue(BattleCue.explosion);
+    _feedback.kick(enemy.isBoss ? 14 : 5);
   }
 
   bool _damagePlayer(double damage, {bool silent = false}) {
     if (status != BattleStatus.running || damage <= 0) return false;
     if (time < player.invulnerableUntil) return false;
     if (shieldActive) {
-      effects.add(
-        BattleEffect(
-          kind: EffectKind.shieldBreak,
-          x: player.x,
-          y: player.y,
-          radius: 22,
-          duration: 0.3,
-        ),
+      _feedback.effect(
+        EffectKind.shieldBreak,
+        player.x,
+        player.y,
+        radius: 22,
+        duration: 0.3,
       );
       player.invulnerableUntil = time + 0.35;
       return true;
@@ -881,8 +780,8 @@ class BattleSim {
     if (sheltering) damage *= 1 - kCoverShelterReduction;
     player.hp -= damage;
     player.invulnerableUntil = time + 0.9;
-    shake = math.max(shake, 9);
-    if (!silent) cues.add(BattleCue.hurt);
+    _feedback.kick(9);
+    if (!silent) _feedback.cue(BattleCue.hurt);
     if (player.hp <= 0) {
       player.hp = 0;
       _lose();
@@ -909,78 +808,19 @@ class BattleSim {
     comboTimer = kComboWindow;
     final points = (enemy.spec.score * comboMultiplier).round();
     score += points;
-    _popup('+$points', enemy.x, enemy.y, const Color(0xFFFFD166));
+    _feedback.popup('+$points', enemy.x, enemy.y, const Color(0xFFFFD166));
     if (enemy.isBoss) {
       score += 1500;
-      _popup('头目击破 +1500', Field.width / 2, 160, const Color(0xFFFFB74D));
-    }
-    _dropPickup(enemy);
-  }
-
-  void _dropPickup(EnemyUnit enemy) {
-    // 头目必掉双补给，其余的精英必掉一件，普通敌兵按概率掉落。
-    if (enemy.isBoss) {
-      pickups.addAll([
-        PickupItem(kind: PickupKind.medkit, x: 120, y: 200),
-        PickupItem(kind: PickupKind.ammo, x: 180, y: 200),
-      ]);
-      return;
-    }
-    final chance = enemy.isElite ? 1.0 : 0.15;
-    if (_random.nextDouble() > chance) return;
-    pickups.add(
-      PickupItem(
-        kind: _rollPickupKind(),
-        x: enemy.x.clamp(20.0, Field.width - 20),
-        y: enemy.y.clamp(60.0, Field.height - 40),
-      ),
-    );
-  }
-
-  PickupKind _rollPickupKind() {
-    final roll = _random.nextDouble();
-    if (player.hp < kPlayerMaxHp * 0.55) {
-      if (roll < 0.55) return PickupKind.medkit;
-      if (roll < 0.80) return PickupKind.ammo;
-      return PickupKind.shield;
-    }
-    if (roll < 0.40) return PickupKind.ammo;
-    if (roll < 0.75) return PickupKind.shield;
-    return PickupKind.medkit;
-  }
-
-  void _spawnParticles(double x, double y, double radius, int count) {
-    final budget = math.min(count, maxParticles - particles.length);
-    for (var i = 0; i < budget; i++) {
-      final angle = _random.nextDouble() * math.pi * 2;
-      final speed = 24 + _random.nextDouble() * radius * 3.2;
-      final life = 0.35 + _random.nextDouble() * 0.45;
-      final color = _random.nextBool()
-          ? const Color(0xFFFFB347)
-          : const Color(0xFFFF6B3D);
-      final size = 1.4 + _random.nextDouble() * 2.2;
-      final particle = _particlePool.isNotEmpty
-          ? _particlePool.removeLast()
-          : Particle();
-      particle.reset(
-        x: x,
-        y: y,
-        vx: math.cos(angle) * speed,
-        vy: math.sin(angle) * speed - 12,
-        life: life,
-        color: color,
-        size: size,
+      _feedback.popup(
+        '头目击破 +1500',
+        Field.width / 2,
+        160,
+        const Color(0xFFFFB74D),
       );
-      particles.add(particle);
     }
-  }
-
-  void _recycleParticle(Particle particle) {
-    if (_particlePool.length < _maxPooledParticles) _particlePool.add(particle);
-  }
-
-  void _popup(String text, double x, double y, Color color) {
-    popups.add(ScorePopup(text: text, x: x, y: y, color: color));
+    pickups.addAll(
+      rollDrops(enemy, playerHpRatio: player.hpRatio, random: _random),
+    );
   }
 
   void _advanceWave() {
@@ -992,7 +832,12 @@ class BattleSim {
     }
     final bonus = 200 * wave;
     score += bonus;
-    _popup('第 $wave 波清除 +$bonus', Field.width / 2, 190, const Color(0xFF9AD1A0));
+    _feedback.popup(
+      '第 $wave 波清除 +$bonus',
+      Field.width / 2,
+      190,
+      const Color(0xFF9AD1A0),
+    );
     _beginWave(wave + 1);
   }
 
@@ -1000,32 +845,28 @@ class BattleSim {
     if (finished) return;
     status = BattleStatus.won;
     score += 3000;
-    cues.add(BattleCue.victory);
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.bossDown,
-        x: Field.width / 2,
-        y: 180,
-        radius: 120,
-        duration: 1.2,
-      ),
+    _feedback.cue(BattleCue.victory);
+    _feedback.effect(
+      EffectKind.bossDown,
+      Field.width / 2,
+      180,
+      radius: 120,
+      duration: 1.2,
     );
   }
 
   void _lose() {
     if (finished) return;
     status = BattleStatus.lost;
-    cues.add(BattleCue.defeat);
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.explosion,
-        x: player.x,
-        y: player.y,
-        radius: 46,
-        duration: 0.7,
-      ),
+    _feedback.cue(BattleCue.defeat);
+    _feedback.effect(
+      EffectKind.explosion,
+      player.x,
+      player.y,
+      radius: 46,
+      duration: 0.7,
     );
-    _spawnParticles(player.x, player.y, 40, 18);
+    _feedback.burst(player.x, player.y, 40, 18);
   }
 
   /// 玩家位移（触屏拖动或键盘方向），自动限制在战场下半段。
@@ -1058,7 +899,7 @@ class BattleSim {
         fromPlayer: true,
       ),
     );
-    cues.add(BattleCue.enemyShot);
+    _feedback.cue(BattleCue.enemyShot);
     return true;
   }
 
@@ -1066,29 +907,15 @@ class BattleSim {
   bool deployCover() {
     if (status != BattleStatus.running) return false;
     if (time < player.coverReadyAt) return false;
-    if (covers.length >= kCoverMax) return false;
-    final x = player.x.clamp(
-      kCoverHalfWidth + 12,
-      Field.width - kCoverHalfWidth - 12,
-    );
+    if (_covers.count >= CoverField.limit) return false;
+    final x = player.x
+        .clamp(kCoverHalfWidth + 12, Field.width - kCoverHalfWidth - 12)
+        .toDouble();
     final y = player.y - 56;
-    for (final cover in covers) {
-      if ((cover.x - x).abs() < kCoverHalfWidth && (cover.y - y).abs() < 26) {
-        return false;
-      }
-    }
-    covers.add(CoverWall(x: x, y: y));
+    if (!_covers.place(CoverWall(x: x, y: y))) return false;
     player.coverReadyAt = time + kCoverCooldown;
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.dust,
-        x: x,
-        y: y,
-        radius: 20,
-        duration: 0.4,
-      ),
-    );
-    cues.add(BattleCue.cover);
+    _feedback.effect(EffectKind.dust, x, y, radius: 20, duration: 0.4);
+    _feedback.cue(BattleCue.cover);
     return true;
   }
 
@@ -1097,65 +924,10 @@ class BattleSim {
     if (status != BattleStatus.running) return false;
     if (time < player.airstrikeReadyAt) return false;
     player.airstrikeReadyAt = time + kAirstrikeCooldown;
-    final target = _densestCluster();
-    final baseX = (target?.x ?? Field.width / 2).clamp(
-      kAirstrikeSpacing + 30,
-      Field.width - kAirstrikeSpacing - 30,
-    );
-    final baseY = (target?.y ?? 150).clamp(90.0, Field.height - 90);
-    for (var i = 0; i < kAirstrikeBombs; i++) {
-      final x = baseX + (i - (kAirstrikeBombs - 1) / 2) * kAirstrikeSpacing;
-      hazards.add(
-        GrenadeHazard(
-          kind: HazardKind.bomb,
-          fromX: x,
-          fromY: -40,
-          toX: x,
-          toY: baseY,
-          duration: kAirstrikeFuse + i * 0.18,
-          damage: kAirstrikeDamage,
-          radius: kAirstrikeRadius,
-          fromPlayer: true,
-        ),
-      );
-    }
-    effects.add(
-      BattleEffect(
-        kind: EffectKind.plane,
-        x: 0,
-        y: 44,
-        radius: 0,
-        duration: 1.6,
-      ),
-    );
-    cues.add(BattleCue.airstrike);
+    hazards.addAll(planAirstrike(enemies));
+    _feedback.effect(EffectKind.plane, 0, 44, radius: 0, duration: 1.6);
+    _feedback.cue(BattleCue.airstrike);
     return true;
-  }
-
-  /// 敌军最密集的落点：以每个敌军为圆心数一数周围有多少同伴。
-  EnemyUnit? _densestCluster() {
-    EnemyUnit? best;
-    var bestCount = 0;
-    for (final enemy in enemies) {
-      if (enemy.dead) continue;
-      var count = 0;
-      for (final other in enemies) {
-        if (other.dead) continue;
-        if (circleOverlap(
-          enemy.x,
-          enemy.y,
-          other.x,
-          other.y,
-          kAirstrikeRadius,
-        )) {
-          count++;
-        }
-      }
-      if (count <= bestCount) continue;
-      bestCount = count;
-      best = enemy;
-    }
-    return best;
   }
 
   /// 一局的战果，供结算与战绩记录使用。
