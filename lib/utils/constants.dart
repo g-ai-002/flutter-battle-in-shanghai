@@ -8,7 +8,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '血战上海滩';
-  static const String version = '0.1.0';
+  static const String version = '0.1.1';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
@@ -38,5 +38,4 @@ class Field {
   static const double playerStartY = 340;
 
   static const double enemyTop = -30;
-  static const double enemyRetreatY = 210;
 }
