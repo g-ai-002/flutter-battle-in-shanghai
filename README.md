@@ -41,29 +41,32 @@
 
 ## 下载
 
-最新版本 v0.3.0：[Run 3129](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3129)
-测试、Android 与 Web 三项通过，APK 与 Web ZIP 已上传，Web 已部署到在线试玩地址；
-构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
+最新版本 v0.3.1（重构优化版）：构建与发布由 CI 执行，待 `build` 工作流完成后在此补上产物链接。
+玩法与画面与 v0.3.0 一致，重构了阵地美术、战役波次与解锁进度的代码结构。
+
+v0.3.0 产物：[Run 3129](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3129)
+测试、Android 与 Web 三项通过，APK 与 Web ZIP 已上传；构建时 `windows-flutter` runner 不在线，
+Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.0-android-aarch64.apk`（Run 3129 Artifacts） |
-| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
-| Web | `flutter-battle-in-shanghai-0.3.0-web.zip`（Run 3129 Artifacts，解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.1-android-aarch64.apk`（待 CI 构建） |
+| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.3.1-windows-x86_64.zip`（待 CI 构建） |
+| Web | `flutter-battle-in-shanghai-0.3.1-web.zip`（待 CI 构建，解压后起静态服务器） |
 
-在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.3.0/>
+在线试玩（v0.3.0）：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.3.0/>
 
 ## 版本
 
 | 版本 | 简介 |
 | --- | --- |
+| v0.3.1 | 重构 0.3.0 增量代码：美术按街景/景物/单位/特效拆模块，波次与解锁进度独立，玩法不变 |
 | v0.3.0 | 闸北/外滩/四行仓库三处阵地、独立波次与街景，通关顺序解锁 |
 | v0.2.2 | 性能专项：前景街垒/探照灯/工事改贴图，渐变画笔复用，逻辑步零闭包分配 |
 | v0.2.1 | 重构 0.2.0 增量代码：工事、空袭、掉落、反馈与波次编排各自成模块，玩法不变 |
 | v0.2.0 | 沙袋工事与空袭支援，战役五波改为前哨/夹击/压制/突袭/决战阵型 |
-| v0.1.2 | 静态图层位图缓存、粒子池化、绘制复用与停帧，背景绘制耗时约降 67% |
 
-更早：v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
+更早：v0.1.2 静态图层位图缓存与粒子池化；v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
 
 ## 开发
 
@@ -89,12 +92,12 @@ flutter test
 
 ```
 lib/
-├── flame/       Flame 游戏入口、战场渲染与静态图层缓存
-├── game/        战斗模拟、实体、工事、空袭、掉落、反馈、波次、配置与控制器
+├── flame/       Flame 入口、场景/战斗分层绘制、文字缓存与静态图层注册表
+├── game/        战斗模拟、实体、工事、空袭、掉落、反馈、波次编排、阵地进度与控制器
 ├── models/      战绩模型
 ├── pages/       首页、战斗页、设置页与悬浮 HUD 组件
 ├── providers/   偏好状态
 ├── services/    日志、存储、音效合成与播放
-├── theme/       主题、程序化战场美术与共用画笔
+├── theme/       主题、街景/景物/单位/特效美术模块与共用画笔
 └── utils/       布局几何、横竖屏判定、窗口与系统栏
 ```
