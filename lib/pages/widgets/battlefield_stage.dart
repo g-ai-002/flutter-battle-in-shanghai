@@ -2,10 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../flame/battle_game.dart';
-import '../../game/battle_config.dart';
 import '../../game/battle_scenes.dart';
 import '../../theme/battle_painting.dart';
-import '../../theme/scene_palette.dart';
 import '../../utils/battlefield_layout.dart';
 import '../../utils/constants.dart';
 
@@ -111,51 +109,8 @@ class _PreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final scale = size.width / Field.width;
-    canvas.save();
-    canvas.scale(scale);
-    const field = Size(Field.width, Field.height);
-    final palette = paletteOf(scene);
-    // 首页预览复用同一套战场画法：街道、阵地景物、两名推进中的敌军、守军与街垒。
-    paintStreet(canvas, field, 0, palette);
-    paintSceneProps(canvas, field, scene, palette);
-    paintSoldier(
-      canvas,
-      const Offset(96, 168),
-      radius: 9,
-      uniform: const Color(0xFF595142),
-      helmet: const Color(0xFF403A30),
-      aim: 1.5707963267948966,
-      walk: 1.2,
-      hostile: true,
-    );
-    paintSoldier(
-      canvas,
-      const Offset(206, 214),
-      radius: 9,
-      uniform: const Color(0xFF4C473C),
-      helmet: const Color(0xFF363229),
-      accent: const Color(0xFF7A2A20),
-      aim: 1.9,
-      hostile: true,
-    );
-    paintPickup(
-      canvas,
-      const Offset(244, 288),
-      PickupKind.ammo,
-      0,
-    );
-    paintSoldier(
-      canvas,
-      const Offset(150, 330),
-      radius: 9,
-      uniform: const Color(0xFF80916A),
-      helmet: const Color(0xFF56674A),
-      accent: const Color(0xFFC2452F),
-    );
-    paintBarricade(canvas, field, 0, palette);
-    paintVignette(canvas, field);
-    canvas.restore();
+    // 首页预览复用同一套战场画法，换阵地只换场景参数。
+    paintBattlefieldPreview(canvas, size, scene);
   }
 
   @override
