@@ -114,6 +114,21 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('超小屏竖屏下布局不溢出，战场保持 3:4', (tester) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpGame(tester);
+    final field = tester.getSize(find.byKey(const ValueKey('battlefield')));
+    expect(field.width, greaterThan(0));
+    expect(field.width / field.height, closeTo(3 / 4, 0.01));
+    expect(find.byIcon(Icons.local_fire_department_rounded), findsWidgets);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('无尽模式显示波次但不显示总波数，刷新率来自设置', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;

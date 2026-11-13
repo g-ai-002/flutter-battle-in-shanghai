@@ -97,5 +97,7 @@ void main() {
     final endless = tester.getTopLeft(find.text('无尽模式'));
     expect(endless.dy, greaterThan(campaign.dy));
     expect(endless.dx, closeTo(campaign.dx, 1));
+    // 窄屏把入口提到主视觉之后，开局按钮在首屏内可见。
+    expect(campaign.dy, lessThan(560));
   });
 }

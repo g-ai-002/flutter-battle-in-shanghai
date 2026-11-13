@@ -1,0 +1,53 @@
+import 'dart:math' as math;
+
+import 'package:battle_in_shanghai/game/battle_config.dart';
+import 'package:battle_in_shanghai/game/battle_sim.dart';
+import 'package:battle_in_shanghai/game/entities.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// 自动化 bot：对准最近敌军并适时投雷，验证战役确实可以打通。
+void playCampaign(BattleSim sim) {
+  var guard = 0;
+  while (!sim.finished && guard < 60 * 300) {
+    final targets = sim.enemies.where((enemy) => !enemy.dead).toList()
+      ..sort((a, b) => a.y.compareTo(b.y));
+    if (targets.isNotEmpty) {
+      final dx = targets.first.x - sim.player.x;
+      sim.movePlayer(dx.clamp(-2.4, 2.4), 0);
+    }
+    if (sim.grenadeCooldownLeft <= 0 && targets.length >= 2) {
+      sim.throwGrenade();
+    }
+    sim.update(1 / 60);
+    guard++;
+  }
+}
+
+void main() {
+  test('老兵难度下按正常操作可以打通五波战役', () {
+    final sim = BattleSim(
+      mode: BattleMode.campaign,
+      difficulty: Difficulty.veteran,
+      random: math.Random(42),
+    )..start();
+    playCampaign(sim);
+
+    expect(sim.status, BattleStatus.won);
+    expect(sim.wave, kCampaignWaves);
+    expect(sim.kills, greaterThanOrEqualTo(30));
+    expect(sim.score, greaterThan(5000));
+    expect(sim.player.hp, greaterThan(0));
+  });
+
+  test('王牌难度下通关更吃力，但仍有胜算', () {
+    final sim = BattleSim(
+      mode: BattleMode.campaign,
+      difficulty: Difficulty.ace,
+      random: math.Random(7),
+    )..start();
+    playCampaign(sim);
+
+    expect(sim.status, BattleStatus.won);
+    expect(sim.result.won, isTrue);
+  });
+}
