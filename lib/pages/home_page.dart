@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/battle_config.dart';
+import '../game/battle_scenes.dart';
 import '../models/records.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
@@ -64,7 +65,9 @@ class HomePage extends StatelessWidget {
                           if (wide)
                             Row(
                               children: [
-                                const Expanded(child: _Hero()),
+                                Expanded(
+                                  child: _Hero(scene: settings.scene),
+                                ),
                                 const SizedBox(width: 44),
                                 SizedBox(
                                   width: 500,
@@ -86,6 +89,7 @@ class HomePage extends StatelessWidget {
                             _Hero(
                               compact: compact,
                               showPreview: constraints.maxHeight >= 560,
+                              scene: settings.scene,
                             ),
                             const SizedBox(height: 20),
                             _EntryGrid(entries: entries),
@@ -121,6 +125,7 @@ class HomePage extends StatelessWidget {
         builder: (_) => GamePage(
           mode: mode,
           difficulty: settings.difficulty,
+          scene: settings.scene,
         ),
       ),
     );
@@ -138,7 +143,8 @@ class HomePage extends StatelessWidget {
         accent: colors.primary,
       ),
       title: '战役模式',
-      subtitle: '五波敌军 · 击退头目 · ${settings.difficulty.label}',
+      subtitle:
+          '${settings.scene.label} · 五波敌军 · ${settings.difficulty.label}',
       onTap: () => _start(context, BattleMode.campaign),
     ),
     EntryTile(
@@ -147,7 +153,7 @@ class HomePage extends StatelessWidget {
         accent: appGold,
       ),
       title: '无尽模式',
-      subtitle: '敌军无穷 · 挑战最高分',
+      subtitle: '${settings.scene.label} · 敌军无穷 · 挑战最高分',
       onTap: () => _start(context, BattleMode.endless),
     ),
     EntryTile(
@@ -242,9 +248,14 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({this.compact = false, this.showPreview = true});
+  const _Hero({
+    this.compact = false,
+    this.showPreview = true,
+    this.scene = BattleScene.zhabei,
+  });
 
   final bool compact;
+  final BattleScene scene;
 
   /// 横屏手机高度很矮时直接省掉主视觉，优先露出开局入口。
   final bool showPreview;
@@ -256,7 +267,7 @@ class _Hero extends StatelessWidget {
     return Column(
       children: [
         if (showPreview) ...[
-          BattlefieldPreview(maxWidth: compact ? 150 : 300),
+          BattlefieldPreview(maxWidth: compact ? 150 : 300, scene: scene),
           SizedBox(height: compact ? 12 : 18),
         ],
         Text(
@@ -276,7 +287,7 @@ class _Hero extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Text(
-                '一 九 三 七 · 闸 北',
+                '一 九 三 七 · 上 海',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colors.onSurfaceVariant,
                   letterSpacing: 2.4,
@@ -299,7 +310,7 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// 出战配置：敌军强度与逻辑刷新率。
+/// 出战配置：阵地、敌军强度与逻辑刷新率。
 class _Loadout extends StatelessWidget {
   const _Loadout({required this.settings});
 
@@ -319,6 +330,8 @@ class _Loadout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ScenePicker(settings: settings),
+          const SizedBox(height: 12),
           DifficultyPicker(settings: settings),
           const SizedBox(height: 12),
           LogicRatePicker(settings: settings),

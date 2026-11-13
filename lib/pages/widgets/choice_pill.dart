@@ -8,6 +8,7 @@ class ChoicePill extends StatelessWidget {
     required this.selected,
     required this.accent,
     required this.onTap,
+    this.locked = false,
   });
 
   final String label;
@@ -15,10 +16,14 @@ class ChoicePill extends StatelessWidget {
   final Color accent;
   final VoidCallback onTap;
 
+  /// 未解锁的选项置灰并带一把锁，仍然可点，由调用方给出提示。
+  final bool locked;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final tint = locked ? colors.onSurfaceVariant : accent;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -28,18 +33,37 @@ class ChoicePill extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: selected ? accent.withValues(alpha: 0.10) : Colors.transparent,
+            color: selected && !locked
+                ? accent.withValues(alpha: 0.10)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected ? accent.withValues(alpha: 0.55) : colors.outline,
+              color: selected
+                  ? tint.withValues(alpha: 0.55)
+                  : colors.outline,
             ),
           ),
-          child: Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: selected ? accent : colors.onSurfaceVariant,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (locked) ...[
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 11,
+                  color: colors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: selected && !locked
+                      ? accent
+                      : colors.onSurfaceVariant,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ),
       ),

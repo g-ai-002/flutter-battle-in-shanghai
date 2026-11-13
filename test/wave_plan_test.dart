@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:battle_in_shanghai/game/battle_config.dart';
+import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/wave_plan.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('战役波次', () {
     test('固定五波，最后一波是头目', () {
-      final waves = campaignWaves(Difficulty.veteran);
+      final waves = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
       expect(waves, hasLength(kCampaignWaves));
       expect(waves.last.boss, isTrue);
       expect(
@@ -22,7 +23,7 @@ void main() {
 
     test('每个刷怪点都落在战场横向范围内', () {
       for (final difficulty in Difficulty.values) {
-        final waves = campaignWaves(difficulty);
+        final waves = sceneWaves(BattleScene.zhabei, difficulty);
         for (final wave in waves) {
           expect(wave.orders, isNotEmpty);
           for (final order in wave.orders) {
@@ -34,7 +35,7 @@ void main() {
     });
 
     test('远程兵种有停下的纵坐标，步兵一直推进', () {
-      final waves = campaignWaves(Difficulty.veteran);
+      final waves = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
       for (final wave in waves) {
         for (final order in wave.orders) {
           switch (order.kind) {
@@ -51,14 +52,20 @@ void main() {
     });
 
     test('王牌难度的出怪节奏更快', () {
-      final recruit = campaignWaves(Difficulty.recruit).first.orders;
-      final ace = campaignWaves(Difficulty.ace).first.orders;
+      final recruit = sceneWaves(
+        BattleScene.zhabei,
+        Difficulty.recruit,
+      ).first.orders;
+      final ace = sceneWaves(
+        BattleScene.zhabei,
+        Difficulty.ace,
+      ).first.orders;
       expect(ace.length, recruit.length);
       expect(ace.first.at, lessThan(recruit.first.at));
     });
 
     test('每波都有独立的阵型名称，播报里能看出打法变化', () {
-      final waves = campaignWaves(Difficulty.veteran);
+      final waves = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
       final names = waves.map((wave) => wave.name).toSet();
       expect(names, hasLength(waves.length));
       for (final name in names) {
@@ -70,7 +77,7 @@ void main() {
     });
 
     test('中后期波次混编多种兵种，不只是步兵海', () {
-      final waves = campaignWaves(Difficulty.veteran);
+      final waves = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
       for (final wave in waves.skip(2)) {
         final kinds = wave.orders.map((order) => order.kind).toSet();
         expect(kinds.length, greaterThanOrEqualTo(3), reason: wave.name);

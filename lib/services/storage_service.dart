@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../game/battle_config.dart';
+import '../game/battle_scenes.dart';
 import '../game/battle_sim.dart';
 import '../game/logic_rate.dart';
 import '../models/records.dart';
@@ -60,6 +61,29 @@ class StorageService {
 
   Future<void> setDifficulty(Difficulty value) =>
       _write((p) => p.setString(AppConstants.prefKeyDifficulty, value.name));
+
+  /// 最近选择的阵地，未设置或未知值回退到闸北。
+  BattleScene get scene =>
+      BattleScene.byName(_p.getString(AppConstants.prefKeyScene));
+
+  Future<void> setScene(BattleScene value) =>
+      _write((p) => p.setString(AppConstants.prefKeyScene, value.name));
+
+  /// 已通关的阵地，按名称存储，未知名称直接忽略。
+  Set<BattleScene> get clearedScenes {
+    final raw = _p.getStringList(AppConstants.prefKeyClearedScenes) ?? const [];
+    return BattleScene.values.where((scene) => raw.contains(scene.name)).toSet();
+  }
+
+  Future<void> markSceneCleared(BattleScene scene) => _write((p) async {
+    if (clearedScenes.contains(scene)) return true;
+    final raw = _p.getStringList(AppConstants.prefKeyClearedScenes) ?? <String>[];
+    await p.setStringList(AppConstants.prefKeyClearedScenes, [
+      ...raw,
+      scene.name,
+    ]);
+    return true;
+  });
 
   /// 战场逻辑更新速率，未设置或未知值回退到 60Hz。
   LogicRate get logicRate =>

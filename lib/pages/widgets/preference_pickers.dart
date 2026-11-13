@@ -1,9 +1,50 @@
 import 'package:flutter/material.dart';
 
 import '../../game/battle_config.dart';
+import '../../game/battle_scenes.dart';
 import '../../game/logic_rate.dart';
 import '../../providers/settings_provider.dart';
 import 'choice_pill.dart';
+
+/// 阵地选择：首页与设置页共用，未通关的阵地带锁。
+class ScenePicker extends StatelessWidget {
+  const ScenePicker({super.key, required this.settings});
+
+  final SettingsProvider settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return _PickerGroup(
+      label: '战场阵地',
+      hint: '${settings.scene.title} · ${settings.scene.tagline}',
+      children: [
+        for (final scene in BattleScene.values)
+          ChoicePill(
+            label: scene.label,
+            selected: settings.scene == scene,
+            accent: colors.primary,
+            locked: !settings.isSceneUnlocked(scene),
+            onTap: () => _select(context, scene),
+          ),
+      ],
+    );
+  }
+
+  void _select(BuildContext context, BattleScene scene) {
+    if (!settings.isSceneUnlocked(scene)) {
+      final previous = BattleScene.values[scene.index - 1];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('先通关「${previous.label}」，才能进入${scene.label}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    settings.setScene(scene);
+  }
+}
 
 /// 难度选择：首页与设置页共用。
 class DifficultyPicker extends StatelessWidget {
@@ -59,10 +100,13 @@ class LogicRatePicker extends StatelessWidget {
 
 /// 偏好选择器的统一骨架：小标题 + 一行可换行的胶囊选项。
 class _PickerGroup extends StatelessWidget {
-  const _PickerGroup({required this.label, required this.children});
+  const _PickerGroup({required this.label, required this.children, this.hint});
 
   final String label;
   final List<Widget> children;
+
+  /// 选项下方的补充说明，例如当前阵地的地形短语。
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +122,16 @@ class _PickerGroup extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Wrap(spacing: 8, runSpacing: 8, children: children),
+        if (hint != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            hint!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontSize: 10.5,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }

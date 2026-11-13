@@ -1,3 +1,4 @@
+import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/pages/home_page.dart';
 import 'package:battle_in_shanghai/pages/widgets/battlefield_stage.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
@@ -33,8 +34,10 @@ void main() {
     expect(find.text('作战说明'), findsOneWidget);
     expect(find.text('设置'), findsOneWidget);
     expect(find.textContaining('v${AppConstants.version}'), findsOneWidget);
+    expect(find.text('战场阵地'), findsOneWidget);
     expect(find.text('敌军强度'), findsOneWidget);
     expect(find.text('逻辑刷新率'), findsOneWidget);
+    expect(find.text('闸北'), findsWidgets);
   });
 
   testWidgets('折叠屏宽度下入口排成两列', (tester) async {
@@ -71,6 +74,46 @@ void main() {
     expect(find.text('补给'), findsOneWidget);
     await tester.tap(find.text('明白了'));
     await tester.pumpAndSettle();
+  });
+
+  testWidgets('未通关的阵地带锁，点击给出提示', (tester) async {
+    tester.view.physicalSize = const Size(900, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    expect(settings.scene, BattleScene.zhabei);
+    await tester.ensureVisible(find.text('外滩'));
+    await tester.tap(find.text('外滩'));
+    await tester.pump();
+    expect(find.textContaining('先通关「闸北」'), findsOneWidget);
+    expect(settings.scene, BattleScene.zhabei);
+
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('通关闸北后可以切换到外滩', (tester) async {
+    tester.view.physicalSize = const Size(900, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    SharedPreferences.setMockInitialValues({
+      AppConstants.prefKeyClearedScenes: [BattleScene.zhabei.name],
+    });
+    StorageService.resetForTests();
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    await tester.ensureVisible(find.text('外滩'));
+    await tester.tap(find.text('外滩'));
+    await tester.pump();
+    expect(settings.scene, BattleScene.bund);
   });
 
   testWidgets('切换深色/浅色会更新偏好', (tester) async {

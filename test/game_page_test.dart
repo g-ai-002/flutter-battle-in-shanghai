@@ -47,7 +47,7 @@ void main() {
     await pumpGame(tester);
 
     expect(find.byType(AppBar), findsNothing);
-    expect(find.text('战役 · 老兵'), findsOneWidget);
+    expect(find.text('战役 · 闸北'), findsOneWidget);
     expect(find.text('累计得分'), findsOneWidget);
     expect(find.textContaining('第 1/5 波'), findsOneWidget);
     expect(find.text('手雷'), findsOneWidget);
@@ -188,7 +188,7 @@ void main() {
     StorageService.resetForTests();
     await pumpGame(tester, mode: BattleMode.endless);
 
-    expect(find.text('无尽 · 老兵'), findsOneWidget);
+    expect(find.text('无尽 · 闸北'), findsOneWidget);
     expect(find.textContaining('第 1 波'), findsOneWidget);
     expect(find.textContaining('/5'), findsNothing);
 

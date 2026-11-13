@@ -8,10 +8,12 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '血战上海滩';
-  static const String version = '0.2.2';
+  static const String version = '0.3.0';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
+  static const String prefKeyScene = 'battle_scene';
+  static const String prefKeyClearedScenes = 'cleared_scenes';
   static const String prefKeySound = 'sound_enabled';
   static const String prefKeyMusic = 'music_enabled';
   static const String prefKeyHaptics = 'haptics_enabled';

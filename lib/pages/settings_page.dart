@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/battle_config.dart';
+import '../game/battle_scenes.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
@@ -46,6 +47,8 @@ class SettingsPage extends StatelessWidget {
             title: '战斗',
             icon: Icons.sports_martial_arts_rounded,
             children: [
+              ScenePicker(settings: settings),
+              const SizedBox(height: 14),
               DifficultyPicker(settings: settings),
               const SizedBox(height: 14),
               LogicRatePicker(settings: settings),
@@ -92,6 +95,11 @@ class SettingsPage extends StatelessWidget {
             children: [
               StatRow(label: '最高分', value: formatScore(records.bestScore)),
               StatRow(label: '最远波次', value: '第 ${records.bestWave} 波'),
+              StatRow(
+                label: '已通关阵地',
+                value:
+                    '${settings.clearedScenes.length}/${BattleScene.values.length}',
+              ),
               StatRow(label: '累计击杀', value: '${records.totalKills}'),
               StatRow(label: '出战次数', value: '${records.runs}'),
               StatRow(
@@ -175,7 +183,7 @@ class SettingsPage extends StatelessWidget {
                   const Icon(Icons.timer_outlined, size: 14, color: appFlame),
                   const SizedBox(width: 6),
                   Text(
-                    '战场 3:4 · 军需补给 $kCampaignWaves 波战役',
+                    '战场 3:4 · ${BattleScene.values.length} 处阵地 × $kCampaignWaves 波战役',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),

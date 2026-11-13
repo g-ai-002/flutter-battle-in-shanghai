@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:battle_in_shanghai/game/battle_config.dart';
+import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/wave_plan.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -57,8 +58,8 @@ void main() {
     });
 
     test('战役波次对同一难度稳定复现', () {
-      final first = campaignWaves(Difficulty.veteran);
-      final second = campaignWaves(Difficulty.veteran);
+      final first = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
+      final second = sceneWaves(BattleScene.zhabei, Difficulty.veteran);
       for (var i = 0; i < first.length; i++) {
         expect(
           second[i].orders.map((order) => order.holdY).toList(),

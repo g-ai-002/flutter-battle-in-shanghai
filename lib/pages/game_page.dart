@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../flame/battle_game.dart';
 import '../game/battle_config.dart';
 import '../game/battle_controller.dart';
+import '../game/battle_scenes.dart';
 import '../game/battle_sim.dart';
 import '../game/entities.dart';
 import '../providers/settings_provider.dart';
@@ -23,10 +24,12 @@ class GamePage extends StatefulWidget {
     super.key,
     required this.mode,
     required this.difficulty,
+    this.scene = BattleScene.zhabei,
   });
 
   final BattleMode mode;
   final Difficulty difficulty;
+  final BattleScene scene;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -43,6 +46,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   bool _pausedByLifecycle = false;
   bool _pauseDialogOpen = false;
   int _bestBefore = 0;
+  String? _unlockedScene;
   Timer? _settleTimer;
 
   /// 结算特效播完后的静置时长，之后停掉渲染循环。
@@ -57,13 +61,14 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     _controller = BattleController(
       mode: widget.mode,
       difficulty: widget.difficulty,
+      scene: widget.scene,
       logicRate: settings.logicRate,
     );
     _game = BattleGame(controller: _controller);
     _controller.addListener(_onControllerChanged);
     LogService.info(
-      '开始战斗: ${widget.mode.label}, 难度 ${widget.difficulty.label}, '
-      '逻辑 ${settings.logicRate.label}',
+      '开始战斗: ${widget.mode.label}, 阵地 ${widget.scene.label}, '
+      '难度 ${widget.difficulty.label}, 逻辑 ${settings.logicRate.label}',
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _controller.start();
@@ -128,6 +133,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
         result: result,
         bestScore: result.score > _bestBefore ? result.score : _bestBefore,
         newRecord: result.score > _bestBefore,
+        unlockedScene: _unlockedScene,
         onRestart: _restart,
         onExit: _exit,
       );
@@ -137,10 +143,19 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   void _recordRun(BattleResult result) {
     if (_recorded) return;
     _recorded = true;
-    unawaited(context.read<SettingsProvider>().recordRun(result));
+    final settings = context.read<SettingsProvider>();
+    unawaited(settings.recordRun(result));
+    // 战役通关解锁下一处阵地；首次通关才在结算里提示。
+    if (result.won && widget.mode == BattleMode.campaign) {
+      final next = widget.scene.next;
+      if (next != null && !settings.clearedScenes.contains(widget.scene)) {
+        _unlockedScene = next.label;
+      }
+      unawaited(settings.markSceneCleared(widget.scene));
+    }
     LogService.info(
-      '本局结算: ${result.won ? '胜利' : '失利'}, 得分 ${result.score}, '
-      '击杀 ${result.kills}, 第 ${result.wave} 波',
+      '本局结算: ${widget.scene.label}, ${result.won ? '胜利' : '失利'}, '
+      '得分 ${result.score}, 击杀 ${result.kills}, 第 ${result.wave} 波',
     );
   }
 
@@ -149,6 +164,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     setState(() {
       _resultShown = false;
       _recorded = false;
+      _unlockedScene = null;
       _bestBefore = context.read<SettingsProvider>().records.bestScore;
     });
     _controller.restart();
@@ -304,7 +320,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${widget.mode.label} · ${widget.difficulty.label}',
+                '${widget.mode.label} · ${widget.scene.label}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall,
@@ -312,8 +328,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
               if (!compact)
                 Text(
                   widget.mode == BattleMode.campaign
-                      ? '守住街垒 · 击退五波敌军'
-                      : '敌军无穷 · 尽量活得更久',
+                      ? '${widget.difficulty.label} · 守住街垒 · 击退五波敌军'
+                      : '${widget.difficulty.label} · 敌军无穷 · 尽量活得更久',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(

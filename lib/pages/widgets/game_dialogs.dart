@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../game/battle_config.dart';
+import '../../game/battle_scenes.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
@@ -16,6 +17,7 @@ Future<void> showBattleResultDialog(
   required bool newRecord,
   required VoidCallback onRestart,
   required VoidCallback onExit,
+  String? unlockedScene,
 }) {
   final theme = Theme.of(context);
   final colors = theme.colorScheme;
@@ -41,11 +43,45 @@ Future<void> showBattleResultDialog(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              won ? '五波敌军尽数击退，街垒仍在手中。' : '敌军突破了防线，整备弹药再战一场。',
+              won
+                  ? '${result.scene.label}五波敌军尽数击退，街垒仍在手中。'
+                  : '${result.scene.label}的防线被突破，整备弹药再战一场。',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
               ),
             ),
+            if (unlockedScene != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: appFlame.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: appFlame.withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.flag_rounded,
+                      size: 15,
+                      color: appFlame,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '解锁新阵地 · $unlockedScene',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: appFlame,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -217,12 +253,21 @@ Future<void> showRulesDialog(BuildContext context) {
                 '钢盔提供 6 秒护盾，可以硬闯弹幕。',
               ],
             ),
+            _RuleSection(
+              title: '阵地',
+              lines: [
+                '战役共有${BattleScene.values.length}处阵地：'
+                    '${BattleScene.values.map((scene) => scene.label).join('、')}。',
+                '通关一处阵地解锁下一处，越靠后的阵地敌军越硬。',
+                '每处阵地的街景与波次阵型都不同，首页可随时切换。',
+              ],
+            ),
             const _RuleSection(
               title: '计分',
               lines: [
                 '连续击杀累积倍率，最高 3 倍。',
                 '清空一波与击破头目都有额外奖励。',
-                '战役通关需要击退全部五波敌军。',
+                '战役通关需要击退当前阵地的全部五波敌军。',
               ],
             ),
           ],

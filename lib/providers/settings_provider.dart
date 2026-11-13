@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../game/battle_config.dart';
+import '../game/battle_scenes.dart';
 import '../game/battle_sim.dart';
 import '../game/logic_rate.dart';
 import '../models/records.dart';
@@ -25,6 +26,20 @@ class SettingsProvider extends ChangeNotifier {
   Difficulty get difficulty => _storage.difficulty;
   Future<void> setDifficulty(Difficulty value) =>
       _update(() => _storage.setDifficulty(value));
+
+  BattleScene get scene => _storage.scene;
+  Future<void> setScene(BattleScene value) =>
+      _update(() => _storage.setScene(value));
+
+  Set<BattleScene> get clearedScenes => _storage.clearedScenes;
+
+  /// 第一处阵地默认开放，其余需要先通关上一处。
+  bool isSceneUnlocked(BattleScene scene) =>
+      scene.index == 0 ||
+      clearedScenes.contains(BattleScene.values[scene.index - 1]);
+
+  Future<void> markSceneCleared(BattleScene scene) =>
+      _update(() => _storage.markSceneCleared(scene));
 
   LogicRate get logicRate => _storage.logicRate;
   Future<void> setLogicRate(LogicRate value) =>

@@ -20,6 +20,7 @@ void main() {
     final canvas = Canvas(recorder);
     cache.drawBase(canvas);
     cache.drawRoofs(canvas, 1.4);
+    cache.drawProps(canvas);
     cache.drawGlow(canvas, const Offset(150, 320));
     cache.drawVignette(canvas);
     recorder.endRecording().dispose();
@@ -32,13 +33,14 @@ void main() {
     final cache = SceneCache();
     cache.ensure();
     // 路面、屋顶、暗角、环境光、探照灯、街垒与五档工事。
-    expect(cache.layerBuilds, 6 + SceneCache.coverWearSteps);
+    expect(cache.layerBuilds, SceneCache.layerCount);
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     for (var frame = 0; frame < 90; frame++) {
       cache.drawBase(canvas);
       cache.drawRoofs(canvas, frame / 60);
+      cache.drawProps(canvas);
       cache.drawSearchlight(canvas, frame / 60);
       cache.drawBarricade(canvas);
       cache.drawVignette(canvas);
@@ -57,7 +59,7 @@ void main() {
       );
     }
     recorder.endRecording().dispose();
-    expect(cache.layerBuilds, 6 + SceneCache.coverWearSteps);
+    expect(cache.layerBuilds, SceneCache.layerCount);
     cache.dispose();
   });
 
