@@ -28,6 +28,52 @@ void main() {
     expect(cache.ready, isFalse);
   });
 
+  test('街垒、探照灯与五档工事图形在首帧前一次录好', () {
+    final cache = SceneCache();
+    cache.ensure();
+    // 路面、屋顶、暗角、环境光、探照灯、街垒与五档工事。
+    expect(cache.layerBuilds, 6 + SceneCache.coverWearSteps);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    for (var frame = 0; frame < 90; frame++) {
+      cache.drawBase(canvas);
+      cache.drawRoofs(canvas, frame / 60);
+      cache.drawSearchlight(canvas, frame / 60);
+      cache.drawBarricade(canvas);
+      cache.drawVignette(canvas);
+      cache.drawGlow(canvas, const Offset(150, 320));
+      // 血量在 100% / 75% / 50% / 25% / 0% 之间循环，五档全部命中。
+      final hpRatio = 1 - frame % 5 / 4;
+      expect(
+        cache.drawCover(
+          canvas,
+          const Offset(90, 262),
+          hpRatio,
+          frame / 60,
+          0,
+        ),
+        isTrue,
+      );
+    }
+    recorder.endRecording().dispose();
+    expect(cache.layerBuilds, 6 + SceneCache.coverWearSteps);
+    cache.dispose();
+  });
+
+  test('缓存释放后工事贴图不可用，调用方回退直接绘制', () {
+    final cache = SceneCache();
+    cache.ensure();
+    cache.dispose();
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    expect(
+      cache.drawCover(canvas, const Offset(90, 262), 1, 0, 0),
+      isFalse,
+    );
+    recorder.endRecording().dispose();
+  });
+
   test('战场走缓存路径绘制不抛异常', () {
     final sim = BattleSim(
       mode: BattleMode.endless,

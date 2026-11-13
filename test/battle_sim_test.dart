@@ -107,6 +107,81 @@ void main() {
       expect(sim.cues, contains(BattleCue.shot));
     });
 
+    test('飞出战场的子弹被原地清理，留下的子弹保持顺序', () {
+      final sim = makeSim()..start();
+      advance(sim, 1.7);
+      sim.enemies.clear();
+      sim.playerShots.clear();
+      sim.enemyShots.clear();
+      // 关掉自动射击，避免新子弹干扰统计。
+      sim.player.fireCooldown = 10;
+      final keep = BattleBullet(
+        x: 150,
+        y: 200,
+        vx: 0,
+        vy: -60,
+        damage: 5,
+        radius: 2,
+        fromPlayer: true,
+        color: const Color(0xFFFFD166),
+      );
+      sim.playerShots.add(keep);
+      sim.playerShots.add(
+        BattleBullet(
+          x: 150,
+          y: -20,
+          vx: 0,
+          vy: -300,
+          damage: 5,
+          radius: 2,
+          fromPlayer: true,
+          color: const Color(0xFFFFD166),
+        ),
+      );
+      sim.enemyShots.add(
+        BattleBullet(
+          x: 150,
+          y: Field.height + 4,
+          vx: 0,
+          vy: 300,
+          damage: 5,
+          radius: 2,
+          fromPlayer: false,
+          color: const Color(0xFFFF8A5B),
+        ),
+      );
+      advance(sim, 0.1);
+      expect(sim.playerShots, [same(keep)]);
+      expect(sim.enemyShots, isEmpty);
+    });
+
+    test('子弹尾焰颜色按阵营在生成时确定', () {
+      final friendly = BattleBullet(
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: -100,
+        damage: 1,
+        radius: 2,
+        fromPlayer: true,
+        color: const Color(0xFFFFD166),
+      );
+      final hostile = BattleBullet(
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 100,
+        damage: 1,
+        radius: 2,
+        fromPlayer: false,
+        color: const Color(0xFFFF8A5B),
+      );
+      expect(friendly.trailColor.a, closeTo(0.4, 1e-6));
+      expect(hostile.trailColor.a, closeTo(0.35, 1e-6));
+      expect(friendly.trailColor.r, friendly.color.r);
+      expect(hostile.trailColor.g, hostile.color.g);
+    });
+
     test('冲锋枪射速更快，弹道数量更多', () {
       final sim = makeSim()..start();
       advance(sim, 1.7);
