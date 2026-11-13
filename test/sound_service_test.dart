@@ -41,6 +41,16 @@ void main() {
     expect(played.last, BattleCue.explosion);
   });
 
+  test('连续命中音效按最小间隔合并', () {
+    final played = <BattleCue>[];
+    SoundService.sink = played.add;
+    SoundService.configure(sound: true, haptics: false);
+    for (var i = 0; i < 5; i++) {
+      SoundService.play(BattleCue.hit);
+    }
+    expect(played.where((cue) => cue == BattleCue.hit), hasLength(1));
+  });
+
   test('重置后恢复默认开关', () {
     SoundService.configure(sound: false, haptics: false);
     SoundService.reset();

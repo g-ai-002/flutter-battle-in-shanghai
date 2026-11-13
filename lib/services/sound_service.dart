@@ -28,6 +28,7 @@ class SoundService {
   static Future<void>? _loading;
   static bool _loadFailed = false;
   static DateTime _lastShotAt = DateTime.fromMillisecondsSinceEpoch(0);
+  static DateTime _lastHitAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// 十种提示音的配方：枪声短促，爆炸低沉，胜负用上下行音阶收束。
   static const Map<BattleCue, List<SynthNote>> _presets = {
@@ -114,11 +115,20 @@ class SoundService {
       _clips.putIfAbsent(cue, () => synthesizeWav(_presets[cue]!));
 
   static void play(BattleCue cue) {
-    // 连发武器一秒十几枪，重复触发同一音源只会变成噪声，做一个最小间隔。
-    if (cue == BattleCue.shot) {
-      final now = DateTime.now();
-      if (now.difference(_lastShotAt).inMilliseconds < 45) return;
-      _lastShotAt = now;
+    if (!soundEnabled && !hapticsEnabled) return;
+    // 连发武器一秒十几枪、霰弹一次多颗弹丸，重复触发同一音源只会变成噪声，
+    // 也白白占用音频与触感通道，因此按最小间隔合并。
+    final throttle = cue == BattleCue.shot || cue == BattleCue.hit;
+    final now = DateTime.now();
+    if (throttle) {
+      final last = cue == BattleCue.shot ? _lastShotAt : _lastHitAt;
+      final gap = cue == BattleCue.shot ? 45 : 60;
+      if (now.difference(last).inMilliseconds < gap) return;
+      if (cue == BattleCue.shot) {
+        _lastShotAt = now;
+      } else {
+        _lastHitAt = now;
+      }
     }
     if (soundEnabled) {
       final target = sink;
@@ -181,5 +191,6 @@ class SoundService {
     soundEnabled = true;
     hapticsEnabled = true;
     _lastShotAt = DateTime.fromMillisecondsSinceEpoch(0);
+    _lastHitAt = DateTime.fromMillisecondsSinceEpoch(0);
   }
 }
