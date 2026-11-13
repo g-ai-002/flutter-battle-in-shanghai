@@ -8,30 +8,60 @@ import '../game/battle_sim.dart';
 import '../game/entities.dart';
 import '../theme/battle_painting.dart';
 import '../utils/constants.dart';
+import 'scene_cache.dart';
 
 /// 战场场景绘制：只读取模拟状态，把街道、单位、弹道与提示画到 Canvas 上。
 ///
 /// 与 Flame 组件解耦后，绘制逻辑可以在任意 Canvas 上复用，组件只负责
 /// 缩放、抖动与生命周期。
 class BattleScenePainter {
-  BattleScenePainter({required this.sim});
+  BattleScenePainter({required this.sim, SceneCache? cache})
+    : _cache = cache ?? SceneCache();
 
   final BattleSim sim;
+  final SceneCache _cache;
 
   final Map<String, TextPainter> _textPainters = {};
+
+  /// 敌军按纵向排序用的复用缓冲，避免每帧新建列表。
+  final List<EnemyUnit> _sortedEnemies = [];
+
+  final Paint _fill = Paint();
+  final Paint _stroke = Paint()..style = PaintingStyle.stroke;
+
   double _clock = 0;
+
+  static const int _maxCachedText = 96;
+
+  /// 浮动文字的透明度按 10 档量化，缓存命中率足够高且肉眼几乎无差别。
+  static const int _alphaSteps = 10;
+
+  /// 在第一帧之前预生成静态图层，避免把位图创建放进绘制回调。
+  void prepare() => _cache.ensure();
 
   void paint(Canvas canvas, double clock) {
     _clock = clock;
+    _cache.ensure();
     const field = Size(Field.width, Field.height);
-    paintStreet(canvas, field, clock);
-    _paintAmbientLight(canvas);
+    if (_cache.ready) {
+      _cache.drawBase(canvas);
+      _cache.drawRoofs(canvas, clock);
+      paintStreetMotion(canvas, field, clock);
+      _cache.drawGlow(canvas, Offset(sim.player.x, sim.player.y - 40));
+    } else {
+      paintStreet(canvas, field, clock);
+      _paintAmbientLight(canvas);
+    }
     _paintHazards(canvas);
     _paintPickups(canvas);
 
-    final enemies = List<EnemyUnit>.of(sim.enemies)
-      ..sort((a, b) => a.y.compareTo(b.y));
-    for (final enemy in enemies) {
+    _sortedEnemies
+      ..clear()
+      ..addAll(sim.enemies);
+    if (_sortedEnemies.length > 1) {
+      _sortedEnemies.sort((a, b) => a.y.compareTo(b.y));
+    }
+    for (final enemy in _sortedEnemies) {
       _paintEnemy(canvas, enemy);
     }
 
@@ -43,7 +73,11 @@ class BattleScenePainter {
     paintBarricade(canvas, field, clock);
     _paintAnnouncement(canvas);
 
-    paintVignette(canvas, field);
+    if (_cache.ready) {
+      _cache.drawVignette(canvas);
+    } else {
+      paintVignette(canvas, field);
+    }
     final lowHp = 1 - sim.player.hpRatio;
     if (lowHp > 0.55) paintDamageWash(canvas, field, (lowHp - 0.55) / 0.45);
   }
@@ -53,21 +87,34 @@ class BattleScenePainter {
       painter.dispose();
     }
     _textPainters.clear();
+    _cache.dispose();
   }
 
-  /// 玩家周围的暖色环境光：夜里也能把视线收拢到守军附近。
+  Paint _fillPaint(Color color) => _fill
+    ..color = color
+    ..style = PaintingStyle.fill
+    ..strokeWidth = 0
+    ..strokeCap = StrokeCap.butt
+    ..shader = null;
+
+  Paint _strokePaint(
+    Color color,
+    double width, {
+    StrokeCap cap = StrokeCap.butt,
+  }) => _stroke
+    ..color = color
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..strokeCap = cap
+    ..shader = null;
+
+  /// 缓存不可用时的回退：直接画径向渐变环境光。
   void _paintAmbientLight(Canvas canvas) {
     final center = Offset(sim.player.x, sim.player.y - 40);
-    canvas.drawCircle(
-      center,
-      138,
-      Paint()
-        ..shader = ui.Gradient.radial(
-          center,
-          138,
-          [const Color(0x1FFFD9A0), const Color(0x00FFD9A0)],
-        ),
-    );
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    paintPlayerGlow(canvas, SceneCache.glowRadius);
+    canvas.restore();
   }
 
   void _paintHazards(Canvas canvas) {
@@ -80,10 +127,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(hazard.toX, hazard.toY),
         hazard.radius * (0.55 + hazard.progress * 0.45),
-        Paint()
-          ..color = color.withValues(alpha: 0.22 + pulse * 0.35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2,
+        _strokePaint(color.withValues(alpha: 0.22 + pulse * 0.35), 1.2),
       );
       // 影子
       canvas.drawOval(
@@ -92,19 +136,19 @@ class BattleScenePainter {
           width: 12,
           height: 6,
         ),
-        Paint()..color = const Color(0x55000000),
+        _fillPaint(const Color(0x55000000)),
       );
       // 飞行中的手雷
       final center = Offset(hazard.x, hazard.y - hazard.lift);
       canvas.drawCircle(
         center,
         2.6,
-        Paint()..color = const Color(0xFF3C3A2C),
+        _fillPaint(const Color(0xFF3C3A2C)),
       );
       canvas.drawCircle(
         Offset(center.dx - 0.8, center.dy - 0.8),
         0.9,
-        Paint()..color = const Color(0xFFB9AF8E),
+        _fillPaint(const Color(0xFFB9AF8E)),
       );
     }
   }
@@ -191,10 +235,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(enemy.x, enemy.y),
         enemy.spec.radius + 4,
-        Paint()
-          ..color = const Color(0x66FFD9A0)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.9,
+        _strokePaint(const Color(0x66FFD9A0), 0.9),
       );
     }
   }
@@ -208,17 +249,16 @@ class BattleScenePainter {
         Rect.fromLTWH(left, y, width, 3),
         const Radius.circular(1.5),
       ),
-      Paint()..color = const Color(0xCC160F0A),
+      _fillPaint(const Color(0xCC160F0A)),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(left, y, width * enemy.hpRatio, 3),
         const Radius.circular(1.5),
       ),
-      Paint()
-        ..color = enemy.isBoss
-            ? const Color(0xFFFF5A3C)
-            : const Color(0xFFFFB347),
+      _fillPaint(
+        enemy.isBoss ? const Color(0xFFFF5A3C) : const Color(0xFFFFB347),
+      ),
     );
   }
 
@@ -231,10 +271,10 @@ class BattleScenePainter {
       canvas.drawCircle(
         center,
         kPlayerRadius + 7 + math.sin(_clock * 5) * 1.2,
-        Paint()
-          ..color = const Color(0xFF7FC4E8).withValues(alpha: 0.55)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6,
+        _strokePaint(
+          const Color(0xFF7FC4E8).withValues(alpha: 0.55),
+          1.6,
+        ),
       );
       canvas.drawCircle(
         center,
@@ -276,15 +316,16 @@ class BattleScenePainter {
       canvas.drawLine(
         tail,
         Offset(bullet.x, bullet.y),
-        Paint()
-          ..color = bullet.color.withValues(alpha: 0.35)
-          ..strokeWidth = bullet.radius * 2.2
-          ..strokeCap = StrokeCap.round,
+        _strokePaint(
+          bullet.color.withValues(alpha: 0.35),
+          bullet.radius * 2.2,
+          cap: StrokeCap.round,
+        ),
       );
       canvas.drawCircle(
         Offset(bullet.x, bullet.y),
         bullet.radius,
-        Paint()..color = bullet.color,
+        _fillPaint(bullet.color),
       );
     }
     for (final bullet in sim.playerShots) {
@@ -295,18 +336,20 @@ class BattleScenePainter {
       canvas.drawLine(
         tail,
         Offset(bullet.x, bullet.y),
-        Paint()
-          ..color = bullet.color.withValues(alpha: 0.4)
-          ..strokeWidth = bullet.radius * 2
-          ..strokeCap = StrokeCap.round,
+        _strokePaint(
+          bullet.color.withValues(alpha: 0.4),
+          bullet.radius * 2,
+          cap: StrokeCap.round,
+        ),
       );
       canvas.drawLine(
         Offset(bullet.x, bullet.y),
         Offset(bullet.x, bullet.y - 3),
-        Paint()
-          ..color = const Color(0xFFFFF3D0)
-          ..strokeWidth = bullet.radius
-          ..strokeCap = StrokeCap.round,
+        _strokePaint(
+          const Color(0xFFFFF3D0),
+          bullet.radius,
+          cap: StrokeCap.round,
+        ),
       );
     }
   }
@@ -334,20 +377,19 @@ class BattleScenePainter {
             canvas.drawCircle(
               Offset(effect.x, effect.y),
               effect.radius * progress,
-              Paint()
-                ..color = const Color(0xFFFFD9A0)
-                    .withValues(alpha: (1 - progress) * 0.5)
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 2.4,
+              _strokePaint(
+                const Color(0xFFFFD9A0).withValues(alpha: (1 - progress) * 0.5),
+                2.4,
+              ),
             );
           }
         case EffectKind.hit:
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.5 + progress),
-            Paint()
-              ..color = const Color(0xFFFFF0C0)
-                  .withValues(alpha: (1 - progress) * 0.85),
+            _fillPaint(
+              const Color(0xFFFFF0C0).withValues(alpha: (1 - progress) * 0.85),
+            ),
           );
         case EffectKind.muzzle:
           paintMuzzle(
@@ -360,21 +402,19 @@ class BattleScenePainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.4 + progress * 1.4),
-            Paint()
-              ..color = const Color(0xFFFFD166)
-                  .withValues(alpha: (1 - progress) * 0.5)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.4,
+            _strokePaint(
+              const Color(0xFFFFD166).withValues(alpha: (1 - progress) * 0.5),
+              1.4,
+            ),
           );
         case EffectKind.shieldBreak:
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (1 + progress * 0.6),
-            Paint()
-              ..color = const Color(0xFF7FC4E8)
-                  .withValues(alpha: (1 - progress) * 0.8)
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 2,
+            _strokePaint(
+              const Color(0xFF7FC4E8).withValues(alpha: (1 - progress) * 0.8),
+              2,
+            ),
           );
       }
     }
@@ -385,7 +425,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(particle.x, particle.y),
         particle.size * particle.ratio,
-        Paint()..color = particle.color.withValues(alpha: particle.ratio),
+        _fillPaint(particle.color.withValues(alpha: particle.ratio)),
       );
     }
     // 夜空余烬：持续上飘，给静止画面一点空气感。
@@ -397,7 +437,7 @@ class BattleScenePainter {
       canvas.drawCircle(
         Offset(x, y),
         0.8,
-        Paint()..color = const Color(0xFFFFA24A).withValues(alpha: twinkle),
+        _fillPaint(const Color(0xFFFFA24A).withValues(alpha: twinkle)),
       );
     }
   }
@@ -406,10 +446,11 @@ class BattleScenePainter {
     for (final popup in sim.popups) {
       final progress = popup.age / ScorePopup.duration;
       final alpha = (1 - progress).clamp(0.0, 1.0);
+      final color = _steadyColor(popup.color.withValues(alpha: alpha));
       final painter = _painter(
         popup.text,
         10,
-        popup.color.withValues(alpha: alpha),
+        color,
         weight: FontWeight.w700,
         spacing: 0.4,
       );
@@ -426,13 +467,14 @@ class BattleScenePainter {
     if (text.isEmpty) return;
     final progress = sim.waveBreakRatio;
     final alpha = (progress * 1.4).clamp(0.0, 1.0);
-    final color = sim.bossWarning
-        ? const Color(0xFFFF7A52)
-        : const Color(0xFFF6E4C6);
+    final color = _steadyColor(
+      (sim.bossWarning ? const Color(0xFFFF7A52) : const Color(0xFFF6E4C6))
+          .withValues(alpha: alpha),
+    );
     final painter = _painter(
       text,
       19,
-      color.withValues(alpha: alpha),
+      color,
       weight: FontWeight.w700,
       spacing: 2.2,
     );
@@ -444,7 +486,7 @@ class BattleScenePainter {
       final sub = _painter(
         '坚守阵地 · 集中火力',
         9,
-        color.withValues(alpha: alpha * 0.8),
+        color.withValues(alpha: color.a * 0.8),
         weight: FontWeight.w500,
         spacing: 2.4,
       );
@@ -452,7 +494,12 @@ class BattleScenePainter {
     }
   }
 
-  /// 文本按内容与样式缓存，避免每帧重新排版。
+  /// 把透明度量化到固定档位，缓存 key 不再逐帧变化。
+  Color _steadyColor(Color color) => color.withValues(
+    alpha: (color.a * _alphaSteps).round() / _alphaSteps,
+  );
+
+  /// 文本按内容与样式缓存，最近使用保留，超限淘汰最旧的一条。
   TextPainter _painter(
     String text,
     double size,
@@ -461,22 +508,28 @@ class BattleScenePainter {
     double spacing = 0,
   }) {
     final key = '$text|$size|${color.toARGB32()}|${weight.value}|$spacing';
-    // 浮动分数会不断产生新文本，缓存超过上限时整体清空，避免无界增长。
-    if (_textPainters.length > 64) dispose();
-    return _textPainters.putIfAbsent(key, () {
-      final painter = TextPainter(
-        text: TextSpan(
-          text: text,
-          style: battlefieldLabelStyle(
-            fontSize: size,
-            color: color,
-            weight: weight,
-            letterSpacing: spacing,
-          ),
+    final cached = _textPainters.remove(key);
+    if (cached != null) {
+      _textPainters[key] = cached;
+      return cached;
+    }
+    if (_textPainters.length >= _maxCachedText) {
+      final oldest = _textPainters.keys.first;
+      _textPainters.remove(oldest)?.dispose();
+    }
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: battlefieldLabelStyle(
+          fontSize: size,
+          color: color,
+          weight: weight,
+          letterSpacing: spacing,
         ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      return painter;
-    });
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    _textPainters[key] = painter;
+    return painter;
   }
 }

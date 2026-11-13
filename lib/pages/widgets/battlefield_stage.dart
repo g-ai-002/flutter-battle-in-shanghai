@@ -84,7 +84,10 @@ class BattlefieldPreview extends StatelessWidget {
           child: SizedBox(
             width: width,
             height: width * Field.height / Field.width,
-            child: const CustomPaint(painter: _PreviewPainter()),
+            // 首页预览是静态画，单独成层后滚动页面不会反复重绘。
+            child: const RepaintBoundary(
+              child: CustomPaint(painter: _PreviewPainter()),
+            ),
           ),
         );
       },

@@ -28,6 +28,12 @@ class BattlefieldComponent extends PositionComponent {
   double _shakeY = 0;
 
   @override
+  Future<void> onLoad() async {
+    _painter.prepare();
+    await super.onLoad();
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
     _clock += dt;

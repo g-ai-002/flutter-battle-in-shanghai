@@ -43,6 +43,10 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   bool _pausedByLifecycle = false;
   bool _pauseDialogOpen = false;
   int _bestBefore = 0;
+  Timer? _settleTimer;
+
+  /// 结算特效播完后的静置时长，之后停掉渲染循环。
+  static const Duration _settleDelay = Duration(milliseconds: 1400);
 
   @override
   void initState() {
@@ -68,6 +72,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _settleTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
@@ -111,6 +116,11 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     _resultShown = true;
     final result = _controller.sim.result;
     _recordRun(result);
+    // 让击破与失败特效播完，再把战场停住，避免结算弹窗背后空转渲染。
+    _settleTimer?.cancel();
+    _settleTimer = Timer(_settleDelay, () {
+      if (mounted) _game.sleep();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       showBattleResultDialog(
@@ -135,6 +145,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   void _restart() {
+    _settleTimer?.cancel();
     setState(() {
       _resultShown = false;
       _recorded = false;

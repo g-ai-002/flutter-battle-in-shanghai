@@ -21,8 +21,37 @@ const Color _sandbag = Color(0xFF8B7A57);
 const Color _sandbagLight = Color(0xFFB09C72);
 const Color _ember = Color(0xFFFFA24A);
 
-/// 背景街道：柏油路、屋顶、车道线与随滚动下移的杂物。
+/// 屋顶循环块的高度：一个块 92，缓存瓦片取两块以保留窗灯的错落。
+const double kRoofBlock = 92;
+const double kRoofTileHeight = kRoofBlock * 2;
+
+// 复用 Paint：战场每帧要画上百个图元，反复 new Paint 会制造大量垃圾。
+final Paint _fill = Paint();
+final Paint _stroke = Paint()..style = PaintingStyle.stroke;
+
+Paint _fillPaint(Color color) => _fill
+  ..color = color
+  ..style = PaintingStyle.fill
+  ..strokeWidth = 0
+  ..strokeCap = StrokeCap.butt
+  ..shader = null;
+
+Paint _strokePaint(Color color, double width) => _stroke
+  ..color = color
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = width
+  ..strokeCap = StrokeCap.butt
+  ..shader = null;
+
+/// 背景街道：静态底色 + 滚动屋顶 + 车道线与杂物。
 void paintStreet(Canvas canvas, Size size, double time) {
+  paintStreetBase(canvas, size);
+  paintRoofs(canvas, size, time);
+  paintStreetMotion(canvas, size, time);
+}
+
+/// 静态底层：路面渐变、人行道与路缘。可整张缓存在位图里。
+void paintStreetBase(Canvas canvas, Size size) {
   final rect = Offset.zero & size;
   canvas.drawRect(
     rect,
@@ -35,81 +64,86 @@ void paintStreet(Canvas canvas, Size size, double time) {
       ),
   );
 
-  // 两侧屋顶：顶视角度下像压在街道边的楼房。
+  // 人行道边线与排水沟
+  final walkPaint = _fillPaint(const Color(0xFF43362A));
+  canvas.drawRect(Rect.fromLTWH(27, 0, 7, size.height), walkPaint);
+  canvas.drawRect(
+    Rect.fromLTWH(size.width - 34, 0, 7, size.height),
+    walkPaint,
+  );
+  final curb = _fillPaint(const Color(0xFF5E4C38));
+  canvas.drawRect(Rect.fromLTWH(34, 0, 1.6, size.height), curb);
+  canvas.drawRect(
+    Rect.fromLTWH(size.width - 35.6, 0, 1.6, size.height),
+    curb,
+  );
+}
+
+/// 一个屋顶循环块：左右两侧各一块，缓存时直接渲染整块瓦片。
+void paintRoofTile(Canvas canvas, Size size) {
   const roofWidth = 27.0;
-  final roofPaint = Paint()..color = _roof;
-  final edgePaint = Paint()
-    ..color = _roofEdge
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 0.8;
-  const block = 92.0;
-  final shift = (time * 46) % block;
-  for (var i = -1; i < size.height / block + 2; i++) {
-    final y = i * block + shift;
+  final roofPaint = _fillPaint(_roof);
+  final edgePaint = _strokePaint(_roofEdge, 0.8);
+  for (var i = 0; i < kRoofTileHeight ~/ kRoofBlock; i++) {
+    final y = i * kRoofBlock;
     for (final left in [true, false]) {
       final x = left ? 0.0 : size.width - roofWidth;
-      final roof = Rect.fromLTWH(x, y, roofWidth, block - 10);
+      final roof = Rect.fromLTWH(x, y, roofWidth, kRoofBlock - 10);
       canvas.drawRect(roof, roofPaint);
       canvas.drawRect(roof.deflate(2.5), edgePaint);
       // 屋顶设备与天窗
       canvas.drawRect(
         Rect.fromLTWH(x + 7, y + 12, 12, 9),
-        Paint()..color = const Color(0xFF1B1611),
+        _fillPaint(const Color(0xFF1B1611)),
       );
       canvas.drawRect(
         Rect.fromLTWH(x + 5, y + 40, 16, 3),
-        Paint()..color = const Color(0xFF453727),
+        _fillPaint(const Color(0xFF453727)),
       );
       // 偶尔亮着的窗
       if (((i + (left ? 0 : 3)) * 37) % 5 == 0) {
         canvas.drawRect(
           Rect.fromLTWH(x + 9, y + 58, 8, 6),
-          Paint()..color = _window.withValues(alpha: 0.55),
+          _fillPaint(_window.withValues(alpha: 0.55)),
         );
       }
     }
   }
+}
 
-  // 人行道边线与排水沟
-  final walkPaint = Paint()..color = const Color(0xFF43362A);
-  canvas.drawRect(
-    Rect.fromLTWH(roofWidth, 0, 7, size.height),
-    walkPaint,
-  );
-  canvas.drawRect(
-    Rect.fromLTWH(size.width - roofWidth - 7, 0, 7, size.height),
-    walkPaint,
-  );
-  final curb = Paint()..color = const Color(0xFF5E4C38);
-  canvas.drawRect(
-    Rect.fromLTWH(roofWidth + 7, 0, 1.6, size.height),
-    curb,
-  );
-  canvas.drawRect(
-    Rect.fromLTWH(size.width - roofWidth - 8.6, 0, 1.6, size.height),
-    curb,
-  );
+/// 滚动屋顶：以 [kRoofTileHeight] 为一个循环向下平移。
+void paintRoofs(Canvas canvas, Size size, double time) {
+  final shift = (time * 46) % kRoofTileHeight;
+  for (var y = shift - kRoofTileHeight; y < size.height; y += kRoofTileHeight) {
+    canvas.save();
+    canvas.translate(0, y);
+    paintRoofTile(canvas, size);
+    canvas.restore();
+  }
+}
 
+/// 随前进感滚动的车道线、碎石与探照灯。
+void paintStreetMotion(Canvas canvas, Size size, double time) {
   // 车道虚线：随画面下移，制造前进感。
   const dash = 26.0;
   const gap = 30.0;
   final dashShift = (time * 132) % (dash + gap);
-  final dashPaint = Paint()..color = const Color(0xFF9C8A6A);
+  final dashPaint = _fillPaint(const Color(0xFF9C8A6A));
   for (var y = -dash - gap + dashShift; y < size.height; y += dash + gap) {
     canvas.drawRect(
       Rect.fromLTWH(size.width / 2 - 2.4, y, 4.8, dash),
       dashPaint,
     );
   }
-  final lanePaint = Paint()..color = const Color(0xFF5E5140);
-  for (final x in [roofWidth + 34, size.width - roofWidth - 34]) {
+  final lanePaint = _fillPaint(const Color(0xFF5E5140));
+  for (final x in [27.0 + 34, size.width - 27.0 - 34]) {
     for (var y = -40 + dashShift * 0.6; y < size.height; y += 70) {
       canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 22), lanePaint);
     }
   }
 
   // 弹坑与碎石：固定伪随机，滚动时不会闪烁。
-  final rubble = Paint()..color = const Color(0xFF4A3A2B);
+  final rubble = _fillPaint(const Color(0xFF4A3A2B));
   for (var i = 0; i < 14; i++) {
     final seed = i * 73.7;
     final baseY = (seed * 13) % size.height;
@@ -118,7 +152,7 @@ void paintStreet(Canvas canvas, Size size, double time) {
     final radius = 1.4 + (seed % 3);
     canvas.drawCircle(Offset(x, y), radius, rubble);
   }
-  final scorch = Paint()..color = const Color(0x22000000);
+  final scorch = _fillPaint(const Color(0x22000000));
   for (var i = 0; i < 4; i++) {
     final y = ((i * 137.0) + time * 30) % (size.height + 80) - 40;
     canvas.drawOval(
@@ -148,6 +182,20 @@ void paintStreet(Canvas canvas, Size size, double time) {
   canvas.drawPath(path, beam);
 }
 
+/// 玩家周围的暖色环境光：缓存成图后按位置贴图，避免每帧新建渐变。
+void paintPlayerGlow(Canvas canvas, double radius) {
+  canvas.drawCircle(
+    Offset.zero,
+    radius,
+    Paint()
+      ..shader = ui.Gradient.radial(
+        Offset.zero,
+        radius,
+        [const Color(0x1FFFD9A0), const Color(0x00FFD9A0)],
+      ),
+  );
+}
+
 /// 玩家与敌军共用的士兵剪影。
 void paintSoldier(
   Canvas canvas,
@@ -167,11 +215,11 @@ void paintSoldier(
   // 地面阴影
   canvas.drawOval(
     Rect.fromCenter(center: Offset(0, 5 * s), width: 17 * s, height: 8 * s),
-    Paint()..color = const Color(0x66000000),
+    _fillPaint(const Color(0x66000000)),
   );
   // 双腿
   final legSwing = math.sin(walk) * 2.2 * s;
-  final legPaint = Paint()..color = uniform.withValues(alpha: 0.9);
+  final legPaint = _fillPaint(uniform.withValues(alpha: 0.9));
   canvas.drawRRect(
     RRect.fromRectAndRadius(
       Rect.fromLTWH(-5 * s + legSwing, 2 * s, 4.2 * s, 8 * s),
@@ -192,7 +240,7 @@ void paintSoldier(
       Rect.fromLTWH(-4.6 * s, -3.4 * s, 9.2 * s, 7 * s),
       Radius.circular(2.4 * s),
     ),
-    Paint()..color = const Color(0xFF3F3526),
+    _fillPaint(const Color(0xFF3F3526)),
   );
   // 躯干
   canvas.drawRRect(
@@ -200,13 +248,13 @@ void paintSoldier(
       Rect.fromLTWH(-5.4 * s, -4.6 * s, 10.8 * s, 10.4 * s),
       Radius.circular(3.6 * s),
     ),
-    Paint()..color = uniform,
+    _fillPaint(uniform),
   );
   // 肩章
   canvas.drawCircle(
     Offset(-4.4 * s, -1.2 * s),
     1.9 * s,
-    Paint()..color = accent,
+    _fillPaint(accent),
   );
   // 步枪：朝向 aim 方向
   final gunStart = Offset(math.cos(aim) * 3 * s, math.sin(aim) * 3 * s);
@@ -214,46 +262,38 @@ void paintSoldier(
   canvas.drawLine(
     gunStart,
     gunEnd,
-    Paint()
-      ..color = const Color(0xFF1A1512)
-      ..strokeWidth = 2.2 * s
-      ..strokeCap = StrokeCap.round,
+    _strokePaint(const Color(0xFF1A1512), 2.2 * s)..strokeCap = StrokeCap.round,
   );
   canvas.drawLine(
     Offset(gunStart.dx + math.cos(aim + 1.2) * 3, gunStart.dy + math.sin(aim + 1.2) * 3),
     Offset(gunStart.dx + math.cos(aim - 1.4) * 2, gunStart.dy + math.sin(aim - 1.4) * 3),
-    Paint()
-      ..color = const Color(0xFF1A1512)
-      ..strokeWidth = 1.6 * s,
+    _strokePaint(const Color(0xFF1A1512), 1.6 * s),
   );
   // 钢盔
   canvas.drawCircle(
     Offset(0, -5.2 * s),
     4.6 * s,
-    Paint()..color = helmet,
+    _fillPaint(helmet),
   );
   canvas.drawArc(
     Rect.fromCircle(center: Offset(0, -5.2 * s), radius: 4.8 * s),
     math.pi,
     math.pi,
     false,
-    Paint()
-      ..color = helmet.withValues(alpha: 0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2 * s,
+    _strokePaint(helmet.withValues(alpha: 0.7), 1.2 * s),
   );
   // 敌我识别：敌军暗红领巾
   if (hostile) {
     canvas.drawRect(
       Rect.fromLTWH(-1.6 * s, 0.4 * s, 3.2 * s, 1.4 * s),
-      Paint()..color = const Color(0xFF8E2F23),
+      _fillPaint(const Color(0xFF8E2F23)),
     );
   }
   if (flash > 0) {
     canvas.drawCircle(
       Offset.zero,
       9 * s,
-      Paint()..color = Colors.white.withValues(alpha: flash * 0.5),
+      _fillPaint(Colors.white.withValues(alpha: flash * 0.5)),
     );
   }
   canvas.restore();
@@ -272,10 +312,10 @@ void paintArmoredCar(
   canvas.translate(center.dx, center.dy);
   canvas.drawOval(
     Rect.fromCenter(center: Offset(0, 6 * s), width: 40 * s, height: 14 * s),
-    Paint()..color = const Color(0x66000000),
+    _fillPaint(const Color(0x66000000)),
   );
   // 履带
-  final track = Paint()..color = const Color(0xFF1F1B16);
+  final track = _fillPaint(const Color(0xFF1F1B16));
   canvas.drawRRect(
     RRect.fromRectAndRadius(
       Rect.fromLTWH(-20 * s, -12 * s, 40 * s, 7 * s),
@@ -297,7 +337,7 @@ void paintArmoredCar(
       canvas.drawCircle(
         Offset(x, y * s),
         1.5 * s,
-        Paint()..color = const Color(0xFF57493A),
+        _fillPaint(const Color(0xFF57493A)),
       );
     }
   }
@@ -306,45 +346,42 @@ void paintArmoredCar(
     Rect.fromLTWH(-16 * s, -11 * s, 32 * s, 22 * s),
     Radius.circular(4 * s),
   );
-  canvas.drawRRect(hull, Paint()..color = const Color(0xFF4B4A3A));
+  canvas.drawRRect(hull, _fillPaint(const Color(0xFF4B4A3A)));
   canvas.drawRRect(
     hull,
-    Paint()
-      ..color = const Color(0xFF6B6A54)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1 * s,
+    _strokePaint(const Color(0xFF6B6A54), 1 * s),
   );
   // 装甲板
   canvas.drawRect(
     Rect.fromLTWH(-16 * s, -2 * s, 7 * s, 4 * s),
-    Paint()..color = const Color(0xFF3A392C),
+    _fillPaint(const Color(0xFF3A392C)),
   );
   canvas.drawRect(
     Rect.fromLTWH(9 * s, -2 * s, 7 * s, 4 * s),
-    Paint()..color = const Color(0xFF3A392C),
+    _fillPaint(const Color(0xFF3A392C)),
   );
   // 炮塔
   canvas.drawCircle(
     Offset(0, -1 * s),
     6.4 * s,
-    Paint()..color = const Color(0xFF5C5B47),
+    _fillPaint(const Color(0xFF5C5B47)),
   );
   canvas.drawRect(
     Rect.fromLTWH(-1.2 * s, 3 * s, 2.4 * s, 12 * s),
-    Paint()..color = const Color(0xFF2E2D24),
+    _fillPaint(const Color(0xFF2E2D24)),
   );
   // 车灯
   final lamp = 0.4 + 0.25 * math.sin(time * 5);
   canvas.drawCircle(
     Offset(-13 * s, 9 * s),
     1.5 * s,
-    Paint()..color = const Color(0xFFFFD9A0).withValues(alpha: lamp),
+    _fillPaint(const Color(0xFFFFD9A0).withValues(alpha: lamp)),
   );
   if (flash > 0) {
     canvas.drawCircle(
       Offset.zero,
       20 * s,
-      Paint()..color = Colors.white.withValues(alpha: flash * 0.35),
+      _fillPaint(Colors.white.withValues(alpha: flash * 0.35)),
     );
   }
   canvas.restore();
@@ -363,23 +400,22 @@ void paintBoss(
   canvas.translate(center.dx, center.dy);
   canvas.drawOval(
     Rect.fromCenter(center: Offset(0, 8 * s), width: 64 * s, height: 22 * s),
-    Paint()..color = const Color(0x77000000),
+    _fillPaint(const Color(0x77000000)),
   );
-  final track = Paint()..color = const Color(0xFF1B1712);
   for (final y in [-22.0, 12.0]) {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(-32 * s, y * s, 64 * s, 10 * s),
         Radius.circular(4 * s),
       ),
-      track,
+      _fillPaint(const Color(0xFF1B1712)),
     );
     for (var i = -5; i <= 5; i++) {
       for (final offset in [y + 2.5, y + 7.5]) {
         canvas.drawCircle(
           Offset(i * 6 * s, offset * s),
           1.6 * s,
-          Paint()..color = const Color(0xFF4A3E30),
+          _fillPaint(const Color(0xFF4A3E30)),
         );
       }
     }
@@ -388,13 +424,10 @@ void paintBoss(
     Rect.fromLTWH(-26 * s, -18 * s, 52 * s, 36 * s),
     Radius.circular(6 * s),
   );
-  canvas.drawRRect(hull, Paint()..color = const Color(0xFF4A4636));
+  canvas.drawRRect(hull, _fillPaint(const Color(0xFF4A4636)));
   canvas.drawRRect(
     hull,
-    Paint()
-      ..color = const Color(0xFF7C755A)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4 * s,
+    _strokePaint(const Color(0xFF7C755A), 1.4 * s),
   );
   // 铆钉
   for (var i = -3; i <= 3; i++) {
@@ -402,7 +435,7 @@ void paintBoss(
       canvas.drawCircle(
         Offset(i * 7 * s, y * s),
         1.3 * s,
-        Paint()..color = const Color(0xFF8B8263),
+        _fillPaint(const Color(0xFF8B8263)),
       );
     }
   }
@@ -411,11 +444,11 @@ void paintBoss(
     canvas.drawCircle(
       Offset(x * s, -2 * s),
       8 * s,
-      Paint()..color = const Color(0xFF5B5744),
+      _fillPaint(const Color(0xFF5B5744)),
     );
     canvas.drawRect(
       Rect.fromLTWH((x - 1.6) * s, 4 * s, 3.2 * s, 18 * s),
-      Paint()..color = const Color(0xFF302C23),
+      _fillPaint(const Color(0xFF302C23)),
     );
   }
   // 警示灯
@@ -423,13 +456,13 @@ void paintBoss(
   canvas.drawCircle(
     Offset(0, -14 * s),
     2.6 * s,
-    Paint()..color = const Color(0xFFFF5A3C).withValues(alpha: blink),
+    _fillPaint(const Color(0xFFFF5A3C).withValues(alpha: blink)),
   );
   if (flash > 0) {
     canvas.drawCircle(
       Offset.zero,
       30 * s,
-      Paint()..color = Colors.white.withValues(alpha: flash * 0.3),
+      _fillPaint(Colors.white.withValues(alpha: flash * 0.3)),
     );
   }
   canvas.restore();
@@ -466,15 +499,15 @@ void paintExplosion(
   canvas.drawCircle(
     Offset.zero,
     r * (0.9 + progress * 0.4),
-    Paint()
-      ..color = const Color(0xFFFFD9A0).withValues(alpha: alpha * 0.35)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.6,
+    _strokePaint(
+      const Color(0xFFFFD9A0).withValues(alpha: alpha * 0.35),
+      1.6,
+    ),
   );
-  final ray = Paint()
-    ..color = const Color(0xFFFFC46B).withValues(alpha: alpha * 0.7)
-    ..strokeWidth = 1.4
-    ..strokeCap = StrokeCap.round;
+  final ray = _strokePaint(
+    const Color(0xFFFFC46B).withValues(alpha: alpha * 0.7),
+    1.4,
+  )..strokeCap = StrokeCap.round;
   for (var i = 0; i < 8; i++) {
     final angle = i * math.pi / 4 + progress * 0.6;
     final inner = r * 0.35;
@@ -507,7 +540,7 @@ void paintMuzzle(Canvas canvas, Offset center, double radius, double alpha) {
   path.close();
   canvas.drawPath(
     path,
-    Paint()..color = const Color(0xFFFFE1A1).withValues(alpha: alpha),
+    _fillPaint(const Color(0xFFFFE1A1).withValues(alpha: alpha)),
   );
 }
 
@@ -539,18 +572,18 @@ void paintPickup(
     Rect.fromCenter(center: Offset.zero, width: 17, height: 17),
     const Radius.circular(3),
   );
-  canvas.drawRRect(box, Paint()..color = const Color(0xFF6B5233).withValues(alpha: fade));
   canvas.drawRRect(
     box,
-    Paint()
-      ..color = const Color(0xFFC79A5B).withValues(alpha: fade)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2,
+    _fillPaint(const Color(0xFF6B5233).withValues(alpha: fade)),
   );
-  final icon = Paint()
-    ..color = const Color(0xFFFFEBC7).withValues(alpha: fade)
-    ..strokeWidth = 2
-    ..strokeCap = StrokeCap.round;
+  canvas.drawRRect(
+    box,
+    _strokePaint(const Color(0xFFC79A5B).withValues(alpha: fade), 1.2),
+  );
+  final icon = _strokePaint(
+    const Color(0xFFFFEBC7).withValues(alpha: fade),
+    2,
+  )..strokeCap = StrokeCap.round;
   switch (kind) {
     case PickupKind.medkit:
       canvas.drawLine(const Offset(-4, 0), const Offset(4, 0), icon);
@@ -581,26 +614,19 @@ void paintBarricade(Canvas canvas, Size size, double time) {
       Rect.fromLTWH(x, rowY - (i.isEven ? 0 : 2), 30, 13),
       const Radius.circular(6),
     );
-    canvas.drawRRect(bag, Paint()..color = _sandbag);
+    canvas.drawRRect(bag, _fillPaint(_sandbag));
     canvas.drawRRect(
       bag,
-      Paint()
-        ..color = _sandbagLight.withValues(alpha: 0.75)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.9,
+      _strokePaint(_sandbagLight.withValues(alpha: 0.75), 0.9),
     );
     canvas.drawLine(
       Offset(x + 4, rowY + 4),
       Offset(x + 24, rowY + 4),
-      Paint()
-        ..color = const Color(0x44FFF0D0)
-        ..strokeWidth = 0.8,
+      _strokePaint(const Color(0x44FFF0D0), 0.8),
     );
   }
   // 铁丝网
-  final wire = Paint()
-    ..color = const Color(0x66C8BCA6)
-    ..strokeWidth = 0.7;
+  final wire = _strokePaint(const Color(0x66C8BCA6), 0.7);
   for (var i = 0; i < 5; i++) {
     final y = rowY - 22 + i * 4;
     canvas.drawLine(Offset(10, y), Offset(size.width - 10, y), wire);
@@ -617,7 +643,7 @@ void paintBarricade(Canvas canvas, Size size, double time) {
     canvas.drawCircle(
       Offset(x, y),
       0.9,
-      Paint()..color = _ember.withValues(alpha: 0.5),
+      _fillPaint(_ember.withValues(alpha: 0.5)),
     );
   }
 }
