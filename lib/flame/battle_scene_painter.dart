@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -27,6 +26,9 @@ class BattleScenePainter {
   /// 敌军按纵向排序用的复用缓冲，避免每帧新建列表。
   final List<EnemyUnit> _sortedEnemies = [];
 
+  /// 固定的比较器：不必每帧创建闭包。
+  static int _byDepth(EnemyUnit a, EnemyUnit b) => a.y.compareTo(b.y);
+
   double _clock = 0;
 
   static const int _maxCachedText = 96;
@@ -44,7 +46,9 @@ class BattleScenePainter {
     if (_cache.ready) {
       _cache.drawBase(canvas);
       _cache.drawRoofs(canvas, clock);
-      paintStreetMotion(canvas, field, clock);
+      // 车道线与碎石逐帧滚动，探照灯与街垒贴预渲染好的位图。
+      paintStreetScroll(canvas, field, clock);
+      _cache.drawSearchlight(canvas, clock);
       _cache.drawGlow(canvas, Offset(sim.player.x, sim.player.y - 40));
     } else {
       paintStreet(canvas, field, clock);
@@ -58,7 +62,7 @@ class BattleScenePainter {
       ..clear()
       ..addAll(sim.enemies);
     if (_sortedEnemies.length > 1) {
-      _sortedEnemies.sort((a, b) => a.y.compareTo(b.y));
+      _sortedEnemies.sort(_byDepth);
     }
     for (final enemy in _sortedEnemies) {
       _paintEnemy(canvas, enemy);
@@ -69,7 +73,12 @@ class BattleScenePainter {
     _paintEffects(canvas);
     _paintParticles(canvas);
     _paintPopups(canvas);
-    paintBarricade(canvas, field, clock);
+    if (_cache.ready) {
+      _cache.drawBarricade(canvas);
+      paintBarricadeEmbers(canvas, field, clock);
+    } else {
+      paintBarricade(canvas, field, clock);
+    }
     _paintAnnouncement(canvas);
 
     if (_cache.ready) {
@@ -102,13 +111,23 @@ class BattleScenePainter {
     for (final cover in sim.covers) {
       // 快要塌的工事淡出提示，避免玩家把掩体当永久防线。
       final fade = cover.life < 2 ? (cover.life / 2).clamp(0.0, 1.0) : 1.0;
-      paintCoverWall(
+      // 沙袋本体按磨损档位贴图，血量条与淡出圈仍然逐帧绘制。
+      final painted = _cache.drawCover(
         canvas,
         Offset(cover.x, cover.y),
         cover.hpRatio,
         _clock,
         cover.shake,
       );
+      if (!painted) {
+        paintCoverWall(
+          canvas,
+          Offset(cover.x, cover.y),
+          cover.hpRatio,
+          _clock,
+          cover.shake,
+        );
+      }
       if (cover.hpRatio < 1) {
         const width = kCoverHalfWidth * 1.7;
         final left = cover.x - width / 2;
@@ -313,15 +332,19 @@ class BattleScenePainter {
         kPlayerRadius + 7 + math.sin(_clock * 5) * 1.2,
         strokePaint(const Color(0xFF7FC4E8).withValues(alpha: 0.55), 1.6),
       );
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
       canvas.drawCircle(
-        center,
+        Offset.zero,
         kPlayerRadius + 7,
-        Paint()
-          ..shader = ui.Gradient.radial(center, kPlayerRadius + 7, [
-            const Color(0x007FC4E8),
-            const Color(0x337FC4E8),
-          ]),
+        radialPaint(
+          0x40001,
+          kPlayerRadius + 7,
+          const [Color(0x007FC4E8), Color(0x337FC4E8)],
+          const [0, 1],
+        ),
       );
+      canvas.restore();
     }
     if (!blinking) {
       paintSoldier(
@@ -353,7 +376,7 @@ class BattleScenePainter {
         tail,
         Offset(bullet.x, bullet.y),
         strokePaint(
-          bullet.color.withValues(alpha: 0.35),
+          bullet.trailColor,
           bullet.radius * 2.2,
           cap: StrokeCap.round,
         ),
@@ -373,7 +396,7 @@ class BattleScenePainter {
         tail,
         Offset(bullet.x, bullet.y),
         strokePaint(
-          bullet.color.withValues(alpha: 0.4),
+          bullet.trailColor,
           bullet.radius * 2,
           cap: StrokeCap.round,
         ),

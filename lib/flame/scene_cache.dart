@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -7,12 +8,15 @@ import '../utils/constants.dart';
 
 /// 战场静态图层缓存。
 ///
-/// 路面渐变、屋顶瓦片、暗角与环境光在整局里几乎不变，预渲染成位图后每帧
-/// 只做贴图，省掉重复构建渐变、Path 与 Paint 的开销。渲染设备不支持位图
-/// 缓存时 [ready] 为 false，调用方回退到直接绘制。
+/// 路面渐变、屋顶瓦片、探照灯、前景街垒、工事与暗角在整局里几乎不变，
+/// 预渲染成位图后每帧只做贴图，省掉重复构建渐变、Path、RRect 与 Paint 的
+/// 开销。渲染设备不支持位图缓存时 [ready] 为 false，调用方回退到直接绘制。
 class SceneCache {
   static const double _zoom = 2;
   static const double glowRadius = 138;
+
+  /// 工事的磨损档位：血量 100% / 75% / 50% / 25% / 0%，各预渲染一张。
+  static const int coverWearSteps = 5;
 
   static const Size fieldSize = Size(Field.width, Field.height);
 
@@ -20,14 +24,22 @@ class SceneCache {
   ui.Image? _roofs;
   ui.Image? _vignette;
   ui.Image? _glow;
+  ui.Image? _barricade;
+  ui.Image? _searchlight;
+  final List<ui.Image?> _covers = List<ui.Image?>.filled(coverWearSteps, null);
 
   final Paint _imagePaint = Paint()..filterQuality = FilterQuality.low;
 
   bool _ready = false;
   bool _unavailable = false;
+  int _layerBuilds = 0;
 
   bool get ready => _ready;
   bool get unavailable => _unavailable;
+
+  /// 预渲染过的位图层数，测试用来确认稳态帧不再重复录制。
+  @visibleForTesting
+  int get layerBuilds => _layerBuilds;
 
   /// 懒加载：首帧创建，失败后不再重试。
   void ensure() {
@@ -54,6 +66,37 @@ class SceneCache {
           paintPlayerGlow(canvas, glowRadius);
         },
       );
+      // 探照灯的光柱只有极淡的渐变，1x 足够，省下一半位图内存。
+      _searchlight = _record(
+        const Size(kSearchlightWidth, kSearchlightHeight),
+        1,
+        (canvas) {
+          canvas.translate(
+            -(Field.width * 0.3 - kSearchlightWidth / 2),
+            -kSearchlightTop,
+          );
+          paintSearchlightBeam(canvas, fieldSize);
+        },
+      );
+      _barricade = _record(
+        const Size(Field.width, kBarricadeStripHeight),
+        _zoom,
+        (canvas) {
+          canvas.translate(0, -(Field.height - kBarricadeStripHeight));
+          paintBarricadeBase(canvas, fieldSize);
+        },
+      );
+      for (var i = 0; i < coverWearSteps; i++) {
+        final hpRatio = 1 - i / (coverWearSteps - 1);
+        _covers[i] = _record(
+          const Size(kCoverArtWidth, kCoverArtHeight),
+          _zoom,
+          (canvas) {
+            canvas.translate(-kCoverArtLeft, -kCoverArtTop);
+            paintCoverWall(canvas, Offset.zero, hpRatio, 0, 0);
+          },
+        );
+      }
       _ready = true;
     } catch (_) {
       _unavailable = true;
@@ -83,6 +126,68 @@ class SceneCache {
         Rect.fromLTWH(0, y, Field.width, kRoofTileHeight),
       );
     }
+  }
+
+  /// 探照灯：缓存里是零摆位的光柱，这里按时间左右平移贴图。
+  void drawSearchlight(Canvas canvas, double clock) {
+    final image = _searchlight;
+    if (image == null) return;
+    final sway = math.sin(clock * 0.35) * 26;
+    _draw(
+      canvas,
+      image,
+      Rect.fromLTWH(
+        Field.width * 0.3 - kSearchlightWidth / 2 + sway,
+        kSearchlightTop,
+        kSearchlightWidth,
+        kSearchlightHeight,
+      ),
+    );
+  }
+
+  /// 前景街垒：一条静态位图，余烬由调用方单独绘制。
+  void drawBarricade(Canvas canvas) {
+    final image = _barricade;
+    if (image == null) return;
+    _draw(
+      canvas,
+      image,
+      const Rect.fromLTWH(
+        0,
+        Field.height - kBarricadeStripHeight,
+        Field.width,
+        kBarricadeStripHeight,
+      ),
+    );
+  }
+
+  /// 工事：按磨损档位贴图，返回 false 表示缓存不可用。
+  bool drawCover(
+    Canvas canvas,
+    Offset center,
+    double hpRatio,
+    double clock,
+    double shake,
+  ) {
+    if (!_ready) return false;
+    final index = ((1 - hpRatio) * (coverWearSteps - 1)).round().clamp(
+      0,
+      coverWearSteps - 1,
+    );
+    final image = _covers[index];
+    if (image == null) return false;
+    final jitter = shake > 0 ? math.sin(clock * 70) * shake * 1.6 : 0.0;
+    _draw(
+      canvas,
+      image,
+      Rect.fromLTWH(
+        center.dx + kCoverArtLeft + jitter,
+        center.dy + kCoverArtTop,
+        kCoverArtWidth,
+        kCoverArtHeight,
+      ),
+    );
+    return true;
   }
 
   void drawVignette(Canvas canvas) {
@@ -116,6 +221,7 @@ class SceneCache {
     draw(canvas);
     final picture = recorder.endRecording();
     try {
+      _layerBuilds++;
       return picture.toImageSync(
         (size.width * zoom).ceil(),
         (size.height * zoom).ceil(),
@@ -135,9 +241,17 @@ class SceneCache {
     _roofs?.dispose();
     _vignette?.dispose();
     _glow?.dispose();
+    _barricade?.dispose();
+    _searchlight?.dispose();
+    for (var i = 0; i < _covers.length; i++) {
+      _covers[i]?.dispose();
+      _covers[i] = null;
+    }
     _base = null;
     _roofs = null;
     _vignette = null;
     _glow = null;
+    _barricade = null;
+    _searchlight = null;
   }
 }

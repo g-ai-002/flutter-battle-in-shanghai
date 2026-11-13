@@ -85,7 +85,9 @@ class BattleBullet {
     required this.fromPlayer,
     required this.color,
   }) : prevX = x,
-       prevY = y;
+       prevY = y,
+       // 尾焰颜色在生成时算好，子弹通常要被绘制二十来帧。
+       trailColor = color.withValues(alpha: fromPlayer ? 0.4 : 0.35);
 
   double x;
   double y;
@@ -100,6 +102,9 @@ class BattleBullet {
   final double radius;
   final bool fromPlayer;
   final Color color;
+
+  /// 尾焰颜色：生成时一次性换算好，渲染层直接使用。
+  final Color trailColor;
 
   double get angle => math.atan2(vy, vx);
 }

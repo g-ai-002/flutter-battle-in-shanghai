@@ -107,6 +107,12 @@ void paintRoofs(Canvas canvas, Size size, double time) {
 
 /// 随前进感滚动的车道线、碎石与探照灯。
 void paintStreetMotion(Canvas canvas, Size size, double time) {
+  paintStreetScroll(canvas, size, time);
+  paintSearchlight(canvas, size, time);
+}
+
+/// 车道线、碎石与弹坑的滚动部分；探照灯单独成层，便于缓存成位图。
+void paintStreetScroll(Canvas canvas, Size size, double time) {
   // 车道虚线：随画面下移，制造前进感。
   const dash = 26.0;
   const gap = 30.0;
@@ -143,20 +149,37 @@ void paintStreetMotion(Canvas canvas, Size size, double time) {
       scorch,
     );
   }
+}
 
-  // 远处的探照灯：两道缓慢摆动的光柱。
-  final beam = Paint()
-    ..shader = ui.Gradient.linear(
-      Offset(size.width * 0.3, 0),
-      Offset(size.width * 0.3, 210),
-      [const Color(0x22FFD9A0), const Color(0x00FFD9A0)],
-    );
+/// 探照灯外接范围：缓存位图时按这个矩形取图，摆动只做平移。
+const double kSearchlightWidth = 140;
+const double kSearchlightHeight = 220;
+const double kSearchlightTop = -10;
+
+/// 远处的探照灯：一道缓慢摆动的光柱，平移量随时间变化。
+void paintSearchlight(Canvas canvas, Size size, double time) {
   final sway = math.sin(time * 0.35) * 26;
+  canvas.save();
+  canvas.translate(sway, 0);
+  paintSearchlightBeam(canvas, size);
+  canvas.restore();
+}
+
+/// 零摆位的光柱本体，供直接绘制与静态图层缓存共用。
+void paintSearchlightBeam(Canvas canvas, Size size) {
+  final x = size.width * 0.3;
+  final beam = linearPaint(
+    0x51000 + size.width.round(),
+    Offset(x, 0),
+    Offset(x, 210),
+    const [Color(0x22FFD9A0), Color(0x00FFD9A0)],
+    const [0, 1],
+  );
   final path = Path()
-    ..moveTo(size.width * 0.3 - 5 + sway, -10)
-    ..lineTo(size.width * 0.3 + 5 + sway, -10)
-    ..lineTo(size.width * 0.3 + 62 + sway, 210)
-    ..lineTo(size.width * 0.3 - 62 + sway, 210)
+    ..moveTo(x - 5, kSearchlightTop)
+    ..lineTo(x + 5, kSearchlightTop)
+    ..lineTo(x + 62, 210)
+    ..lineTo(x - 62, 210)
     ..close();
   canvas.drawPath(path, beam);
 }
@@ -448,24 +471,25 @@ void paintExplosion(
   final ease = 1 - math.pow(1 - progress, 2.4).toDouble();
   final alpha = (1 - progress).clamp(0.0, 1.0);
   final r = radius * (0.35 + ease * 0.95);
+  // 半径与透明度量化后复用画笔：一场爆炸的 30 来帧只建一次 shader。
+  final alphaStep = (alpha * 20).round();
+  final alphaValue = alphaStep / 20;
+  final radiusStep = (r * 2).round();
+  final radiusValue = radiusStep / 2;
+  final core = radialPaint(
+    0x10000 + radiusStep * 32 + alphaStep,
+    radiusValue,
+    [
+      Color.fromRGBO(255, 226, 168, alphaValue * 0.95),
+      Color.fromRGBO(255, 138, 61, alphaValue * 0.7),
+      Color.fromRGBO(194, 69, 47, alphaValue * 0.25),
+      const Color(0x00C2452F),
+    ],
+    const [0, 0.35, 0.72, 1],
+  );
   canvas.save();
   canvas.translate(center.dx, center.dy);
-  canvas.drawCircle(
-    Offset.zero,
-    r,
-    Paint()
-      ..shader = ui.Gradient.radial(
-        Offset.zero,
-        r,
-        [
-          const Color(0xFFFFE2A8).withValues(alpha: alpha * 0.95),
-          const Color(0xFFFF8A3D).withValues(alpha: alpha * 0.7),
-          const Color(0xFFC2452F).withValues(alpha: alpha * 0.25),
-          const Color(0x00C2452F),
-        ],
-        const [0, 0.35, 0.72, 1],
-      ),
-  );
+  canvas.drawCircle(Offset.zero, radiusValue, core);
   canvas.drawCircle(
     Offset.zero,
     r * (0.9 + progress * 0.4),
@@ -520,17 +544,19 @@ void paintPickup(
   double fade = 1,
 }) {
   final y = center.dy + math.sin(bob) * 2;
+  final fadeStep = (fade * 10).round();
+  final glow = radialPaint(
+    0x20000 + fadeStep,
+    14,
+    [
+      Color.fromRGBO(255, 217, 160, 0.24 * fadeStep / 10),
+      const Color(0x00FFD9A0),
+    ],
+    const [0, 1],
+  );
   canvas.save();
   canvas.translate(center.dx, y);
-  canvas.drawCircle(
-    Offset.zero,
-    14,
-    Paint()
-      ..shader = ui.Gradient.radial(Offset.zero, 14, [
-        const Color(0xFFFFD9A0).withValues(alpha: 0.24 * fade),
-        const Color(0x00FFD9A0),
-      ]),
-  );
+  canvas.drawCircle(Offset.zero, 14, glow);
   final box = RRect.fromRectAndRadius(
     Rect.fromCenter(center: Offset.zero, width: 17, height: 17),
     const Radius.circular(3),
@@ -565,6 +591,12 @@ void paintPickup(
   }
   canvas.restore();
 }
+
+/// 工事图形以中心为原点时的外接范围（含阴影、描边与裂缝），供缓存取图。
+const double kCoverArtLeft = -30;
+const double kCoverArtTop = -14;
+const double kCoverArtWidth = 72;
+const double kCoverArtHeight = 28;
 
 /// 工事：两排沙袋堆成的临时掩体，血量越低颜色越灰、还带裂缝。
 void paintCoverWall(
@@ -666,8 +698,17 @@ void paintAirstrikePlane(Canvas canvas, Size size, double progress) {
   canvas.restore();
 }
 
+/// 前景街垒的外接高度：缓存时只取战场底部这一条。
+const double kBarricadeStripHeight = 36;
+
 /// 前景沙袋与铁丝网：压在战场底部，增强纵深。
 void paintBarricade(Canvas canvas, Size size, double time) {
+  paintBarricadeBase(canvas, size);
+  paintBarricadeEmbers(canvas, size, time);
+}
+
+/// 不随时间变化的沙袋与铁丝网，可整条缓存成位图。
+void paintBarricadeBase(Canvas canvas, Size size) {
   final rowY = size.height - 7;
   for (var i = 0; i < 9; i++) {
     final x = 6.0 + i * 34;
@@ -697,30 +738,38 @@ void paintBarricade(Canvas canvas, Size size, double time) {
     canvas.drawLine(Offset(x, rowY - 24), Offset(x + 6, rowY - 10), wire);
     canvas.drawLine(Offset(x + 6, rowY - 24), Offset(x, rowY - 10), wire);
   }
-  // 地面余烬
+}
+
+/// 地面余烬：只随时间横向漂移，单独绘制以保留动态感。
+void paintBarricadeEmbers(Canvas canvas, Size size, double time) {
+  final ember = fillPaint(_ember.withValues(alpha: 0.5));
   for (var i = 0; i < 6; i++) {
     final x = (i * 61.0 + time * 8) % size.width;
     final y = size.height - 18 - (i * 13 % 10);
-    canvas.drawCircle(
-      Offset(x, y),
-      0.9,
-      fillPaint(_ember.withValues(alpha: 0.5)),
-    );
+    canvas.drawCircle(Offset(x, y), 0.9, ember);
   }
 }
 
 /// 玩家的准星线：从枪口向上的淡光，帮助判断火力方向。
+///
+/// 渐变以枪口为原点缓存，玩家移动只平移画布，不必逐帧新建 shader。
 void paintAimBeam(Canvas canvas, Offset from, double length, double alpha) {
-  canvas.drawLine(
-    from,
-    Offset(from.dx, from.dy - length),
-    Paint()
-      ..shader = ui.Gradient.linear(from, Offset(from.dx, from.dy - length), [
-        const Color(0x88FFD9A0).withValues(alpha: 0.3 * alpha),
-        const Color(0x00FFD9A0),
-      ])
-      ..strokeWidth = 1.2,
-  );
+  final lengthStep = (length * 2).round();
+  final alphaStep = (alpha * 10).round();
+  final beam = linearPaint(
+    0x60000 + lengthStep * 16 + alphaStep,
+    Offset.zero,
+    Offset(0, -lengthStep / 2),
+    [
+      const Color(0x88FFD9A0).withValues(alpha: 0.3 * alphaStep / 10),
+      const Color(0x00FFD9A0),
+    ],
+    const [0, 1],
+  )..strokeWidth = 1.2;
+  canvas.save();
+  canvas.translate(from.dx, from.dy);
+  canvas.drawLine(Offset.zero, Offset(0, -lengthStep / 2), beam);
+  canvas.restore();
 }
 
 /// 战场边缘的暗角，把注意力收拢到中间。
@@ -745,21 +794,29 @@ void paintVignette(Canvas canvas, Size size) {
 /// 低血量时的红色警示边缘。
 void paintDamageWash(Canvas canvas, Size size, double intensity) {
   if (intensity <= 0) return;
-  final rect = Offset.zero & size;
-  canvas.drawRect(
-    rect,
-    Paint()
-      ..shader = ui.Gradient.radial(
-        rect.center,
-        size.longestSide * 0.62,
-        [
-          const Color(0x00B3261E),
-          const Color(0x00B3261E),
-          const Color(0xFFB3261E).withValues(alpha: 0.42 * intensity),
-        ],
-        const [0, 0.55, 1],
-      ),
+  final step = (intensity * 10).round().clamp(1, 10);
+  final radius = size.longestSide * 0.62;
+  final wash = radialPaint(
+    0x70000 + size.width.round() * 32 + step,
+    radius,
+    [
+      const Color(0x00B3261E),
+      const Color(0x00B3261E),
+      Color.fromRGBO(179, 38, 30, 0.42 * step / 10),
+    ],
+    const [0, 0.55, 1],
   );
+  canvas.save();
+  canvas.translate(size.width / 2, size.height / 2);
+  canvas.drawRect(
+    Rect.fromCenter(
+      center: Offset.zero,
+      width: size.width,
+      height: size.height,
+    ),
+    wash,
+  );
+  canvas.restore();
 }
 
 /// 波次提示文字的样式。
