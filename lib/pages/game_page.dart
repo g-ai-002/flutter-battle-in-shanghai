@@ -205,6 +205,14 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       if (event is KeyDownEvent) _controller.throwGrenade();
       return KeyEventResult.handled;
     }
+    if (key == LogicalKeyboardKey.keyQ) {
+      if (event is KeyDownEvent) _controller.deployCover();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyE) {
+      if (event is KeyDownEvent) _controller.callAirstrike();
+      return KeyEventResult.handled;
+    }
     if (key == LogicalKeyboardKey.escape) {
       if (event is KeyDownEvent) unawaited(_openPause());
       return KeyEventResult.handled;

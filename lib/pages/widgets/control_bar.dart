@@ -27,13 +27,34 @@ class BattleControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sim = controller.sim;
+    final running = sim.status == BattleStatus.running;
     final cooldown = sim.grenadeCooldownLeft;
-    final ready = cooldown <= 0 && sim.status == BattleStatus.running;
+    final ready = cooldown <= 0 && running;
+    final coverCooldown = sim.coverCooldownLeft;
+    final coverFull = sim.coverCount >= sim.coverLimit;
+    final coverReady = coverCooldown <= 0 && !coverFull && running;
+    final airstrikeCooldown = sim.airstrikeCooldownLeft;
+    final airstrikeReady = airstrikeCooldown <= 0 && running;
     return Wrap(
       alignment: WrapAlignment.end,
       spacing: 2,
       runSpacing: 2,
       children: [
+        _ActionButton(
+          icon: Icons.foundation_rounded,
+          label: coverReady
+              ? '工事'
+              : coverFull
+              ? '工事 ${sim.coverCount}/${sim.coverLimit}'
+              : '${coverCooldown.ceil()}s',
+          onPressed: coverReady ? () => controller.deployCover() : null,
+        ),
+        _ActionButton(
+          icon: Icons.flight_rounded,
+          label: airstrikeReady ? '空袭' : '${airstrikeCooldown.ceil()}s',
+          accent: airstrikeReady ? appGold : null,
+          onPressed: airstrikeReady ? () => controller.callAirstrike() : null,
+        ),
         _ActionButton(
           icon: Icons.local_fire_department_rounded,
           label: ready ? '手雷' : '${cooldown.ceil()}s',

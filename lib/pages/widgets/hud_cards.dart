@@ -213,6 +213,35 @@ class BattleStatusBar extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            if (sim.sheltering) ...[
+              StatusChip(
+                accent: const Color(0xFF6FA8C8),
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 6 : 8,
+                  vertical: compact ? 2 : 3,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.shield_outlined,
+                      size: compact ? 9 : 11,
+                      color: const Color(0xFF6FA8C8),
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      '掩体',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF6FA8C8),
+                        fontWeight: FontWeight.w700,
+                        fontSize: compact ? 9 : 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             Flexible(
               child: Text(
                 sim.brief,

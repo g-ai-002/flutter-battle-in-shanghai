@@ -185,8 +185,19 @@ Future<void> showRulesDialog(BuildContext context) {
               title: '操作',
               lines: [
                 '拖动战场任意位置移动士兵，火力自动朝正前方倾泻。',
-                '桌面端可用 WASD / 方向键移动，空格投掷手雷。',
+                '桌面端可用 WASD / 方向键移动，空格投掷手雷，Q 布置工事，E 呼叫空袭。',
                 '手雷有 ${kGrenadeCooldown.round()} 秒冷却，优先炸装甲车与头目。',
+              ],
+            ),
+            _RuleSection(
+              title: '工事与空袭',
+              lines: [
+                '工事是沙袋掩体，挡得住敌军子弹，却会被步兵一点点挖开，'
+                    '${kCoverLife.round()} 秒后自然失效。',
+                '站在工事后方的掩护范围内可减伤 ${(kCoverShelterReduction * 100).round()}%，'
+                    '战况条会亮起「掩体」标记。',
+                '空袭有 ${kAirstrikeCooldown.round()} 秒冷却，自动轰炸敌军最密集处，'
+                    '落点先有预警圈。',
               ],
             ),
             const _RuleSection(
