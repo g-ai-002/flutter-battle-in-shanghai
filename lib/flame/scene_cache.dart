@@ -8,6 +8,9 @@ import '../theme/battle_painting.dart';
 import '../theme/scene_palette.dart';
 import '../utils/constants.dart';
 
+/// 静态图层的名字：预渲染、贴图与释放都按这张表走，增删图层不必改多处。
+enum _Layer { base, roofs, props, vignette, glow, searchlight, barricade }
+
 /// 战场静态图层缓存。
 ///
 /// 路面渐变、屋顶瓦片、探照灯、前景街垒、阵地景物、工事与暗角在整局里
@@ -31,13 +34,7 @@ class SceneCache {
   final ScenePalette palette;
   final BattleScene scene;
 
-  ui.Image? _base;
-  ui.Image? _roofs;
-  ui.Image? _vignette;
-  ui.Image? _glow;
-  ui.Image? _barricade;
-  ui.Image? _searchlight;
-  ui.Image? _props;
+  final Map<_Layer, ui.Image> _images = {};
   final List<ui.Image?> _covers = List<ui.Image?>.filled(coverWearSteps, null);
 
   final Paint _imagePaint = Paint()..filterQuality = FilterQuality.low;
@@ -53,57 +50,58 @@ class SceneCache {
   @visibleForTesting
   int get layerBuilds => _layerBuilds;
 
-  /// 全部预渲染位图的张数：路面、屋顶、暗角、环境光、探照灯、街垒、景物与工事档位。
-  static const int layerCount = 7 + coverWearSteps;
+  /// 全部预渲染位图的张数：七张整层位图加五档工事磨损图。
+  static int get layerCount => _Layer.values.length + coverWearSteps;
 
   /// 懒加载：首帧创建，失败后不再重试。
   void ensure() {
     if (_ready || _unavailable) return;
     try {
-      _base = _record(fieldSize, _zoom, (canvas) {
-        paintStreetBase(canvas, fieldSize, palette);
-      });
-      _roofs = _record(
-        const Size(Field.width, kRoofTileHeight),
-        _zoom,
-        (canvas) {
-          paintRoofTile(canvas, fieldSize, palette);
-        },
-      );
-      _props = _record(fieldSize, _zoom, (canvas) {
-        paintSceneProps(canvas, fieldSize, scene, palette);
-      });
-      _vignette = _record(fieldSize, 1, (canvas) {
-        paintVignette(canvas, fieldSize);
-      });
-      _glow = _record(
-        const Size(glowRadius * 2, glowRadius * 2),
-        1,
-        (canvas) {
-          canvas.translate(glowRadius, glowRadius);
-          paintPlayerGlow(canvas, glowRadius, palette);
-        },
-      );
-      // 探照灯的光柱只有极淡的渐变，1x 足够，省下一半位图内存。
-      _searchlight = _record(
-        const Size(kSearchlightWidth, kSearchlightHeight),
-        1,
-        (canvas) {
-          canvas.translate(
-            -(Field.width * 0.3 - kSearchlightWidth / 2),
-            -kSearchlightTop,
-          );
-          paintSearchlightBeam(canvas, fieldSize, palette);
-        },
-      );
-      _barricade = _record(
-        const Size(Field.width, kBarricadeStripHeight),
-        _zoom,
-        (canvas) {
-          canvas.translate(0, -(Field.height - kBarricadeStripHeight));
-          paintBarricadeBase(canvas, fieldSize, palette);
-        },
-      );
+      _images
+        ..[_Layer.base] = _record(fieldSize, _zoom, (canvas) {
+          paintStreetBase(canvas, fieldSize, palette);
+        })
+        ..[_Layer.roofs] = _record(
+          const Size(Field.width, kRoofTileHeight),
+          _zoom,
+          (canvas) {
+            paintRoofTile(canvas, fieldSize, palette);
+          },
+        )
+        ..[_Layer.props] = _record(fieldSize, _zoom, (canvas) {
+          paintSceneProps(canvas, fieldSize, scene, palette);
+        })
+        ..[_Layer.vignette] = _record(fieldSize, 1, (canvas) {
+          paintVignette(canvas, fieldSize);
+        })
+        ..[_Layer.glow] = _record(
+          const Size(glowRadius * 2, glowRadius * 2),
+          1,
+          (canvas) {
+            canvas.translate(glowRadius, glowRadius);
+            paintPlayerGlow(canvas, glowRadius, palette);
+          },
+        )
+        // 探照灯的光柱只有极淡的渐变，1x 足够，省下一半位图内存。
+        ..[_Layer.searchlight] = _record(
+          const Size(kSearchlightWidth, kSearchlightHeight),
+          1,
+          (canvas) {
+            canvas.translate(
+              -(Field.width * 0.3 - kSearchlightWidth / 2),
+              -kSearchlightTop,
+            );
+            paintSearchlightBeam(canvas, fieldSize, palette);
+          },
+        )
+        ..[_Layer.barricade] = _record(
+          const Size(Field.width, kBarricadeStripHeight),
+          _zoom,
+          (canvas) {
+            canvas.translate(0, -(Field.height - kBarricadeStripHeight));
+            paintBarricadeBase(canvas, fieldSize, palette);
+          },
+        );
       for (var i = 0; i < coverWearSteps; i++) {
         final hpRatio = 1 - i / (coverWearSteps - 1);
         _covers[i] = _record(
@@ -122,21 +120,15 @@ class SceneCache {
     }
   }
 
-  void drawBase(Canvas canvas) {
-    final image = _base;
-    if (image != null) {
-      _draw(canvas, image, Offset.zero & fieldSize);
-    }
-  }
+  void drawBase(Canvas canvas) =>
+      _drawLayer(canvas, _Layer.base, Offset.zero & fieldSize);
 
   /// 阵地景物：砖墙、江堤或仓库外墙，压在地面之上、单位之下。
-  void drawProps(Canvas canvas) {
-    final image = _props;
-    if (image != null) _draw(canvas, image, Offset.zero & fieldSize);
-  }
+  void drawProps(Canvas canvas) =>
+      _drawLayer(canvas, _Layer.props, Offset.zero & fieldSize);
 
   void drawRoofs(Canvas canvas, double clock) {
-    final image = _roofs;
+    final image = _images[_Layer.roofs];
     if (image == null) return;
     final shift = (clock * 46) % kRoofTileHeight;
     for (
@@ -144,22 +136,16 @@ class SceneCache {
       y < Field.height;
       y += kRoofTileHeight
     ) {
-      _draw(
-        canvas,
-        image,
-        Rect.fromLTWH(0, y, Field.width, kRoofTileHeight),
-      );
+      _draw(canvas, image, Rect.fromLTWH(0, y, Field.width, kRoofTileHeight));
     }
   }
 
   /// 探照灯：缓存里是零摆位的光柱，这里按时间左右平移贴图。
   void drawSearchlight(Canvas canvas, double clock) {
-    final image = _searchlight;
-    if (image == null) return;
     final sway = math.sin(clock * 0.35) * 26;
-    _draw(
+    _drawLayer(
       canvas,
-      image,
+      _Layer.searchlight,
       Rect.fromLTWH(
         Field.width * 0.3 - kSearchlightWidth / 2 + sway,
         kSearchlightTop,
@@ -170,20 +156,16 @@ class SceneCache {
   }
 
   /// 前景街垒：一条静态位图，余烬由调用方单独绘制。
-  void drawBarricade(Canvas canvas) {
-    final image = _barricade;
-    if (image == null) return;
-    _draw(
-      canvas,
-      image,
-      const Rect.fromLTWH(
-        0,
-        Field.height - kBarricadeStripHeight,
-        Field.width,
-        kBarricadeStripHeight,
-      ),
-    );
-  }
+  void drawBarricade(Canvas canvas) => _drawLayer(
+    canvas,
+    _Layer.barricade,
+    const Rect.fromLTWH(
+      0,
+      Field.height - kBarricadeStripHeight,
+      Field.width,
+      kBarricadeStripHeight,
+    ),
+  );
 
   /// 工事：按磨损档位贴图，返回 false 表示缓存不可用。
   bool drawCover(
@@ -214,19 +196,19 @@ class SceneCache {
     return true;
   }
 
-  void drawVignette(Canvas canvas) {
-    final image = _vignette;
-    if (image != null) _draw(canvas, image, Offset.zero & fieldSize);
-  }
+  void drawVignette(Canvas canvas) =>
+      _drawLayer(canvas, _Layer.vignette, Offset.zero & fieldSize);
 
-  void drawGlow(Canvas canvas, Offset center) {
-    final image = _glow;
+  void drawGlow(Canvas canvas, Offset center) => _drawLayer(
+    canvas,
+    _Layer.glow,
+    Rect.fromCircle(center: center, radius: glowRadius),
+  );
+
+  void _drawLayer(Canvas canvas, _Layer layer, Rect dst) {
+    final image = _images[layer];
     if (image == null) return;
-    _draw(
-      canvas,
-      image,
-      Rect.fromCircle(center: center, radius: glowRadius),
-    );
+    _draw(canvas, image, dst);
   }
 
   void _draw(Canvas canvas, ui.Image image, Rect dst) {
@@ -261,23 +243,13 @@ class SceneCache {
   }
 
   void _disposeImages() {
-    _base?.dispose();
-    _roofs?.dispose();
-    _vignette?.dispose();
-    _glow?.dispose();
-    _barricade?.dispose();
-    _searchlight?.dispose();
-    _props?.dispose();
+    for (final image in _images.values) {
+      image.dispose();
+    }
+    _images.clear();
     for (var i = 0; i < _covers.length; i++) {
       _covers[i]?.dispose();
       _covers[i] = null;
     }
-    _base = null;
-    _roofs = null;
-    _vignette = null;
-    _glow = null;
-    _barricade = null;
-    _searchlight = null;
-    _props = null;
   }
 }
