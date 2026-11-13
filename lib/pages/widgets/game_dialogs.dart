@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../game/battle_config.dart';
@@ -33,76 +35,76 @@ Future<void> showBattleResultDialog(
           Text(won ? '阵地守住了' : '阵地失守'),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            won
-                ? '五波敌军尽数击退，街垒仍在手中。'
-                : '敌军突破了防线，整备弹药再战一场。',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              won ? '五波敌军尽数击退，街垒仍在手中。' : '敌军突破了防线，整备弹药再战一场。',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                formatScore(result.score),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: appGold,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5),
-                child: Text(
-                  '分',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  formatScore(result.score),
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: appGold,
+                    letterSpacing: 1,
                   ),
                 ),
-              ),
-              const Spacer(),
-              if (newRecord)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: appGold.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: appGold.withValues(alpha: 0.6)),
-                  ),
-                  child: const Text(
-                    '新纪录',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: appGold,
+                const SizedBox(width: 8),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Text(
+                    '分',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '最高分 ${formatScore(bestScore)}',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
+                const Spacer(),
+                if (newRecord)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: appGold.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: appGold.withValues(alpha: 0.6)),
+                    ),
+                    child: const Text(
+                      '新纪录',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: appGold,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ),
-          const SizedBox(height: 14),
-          _StatRow(label: '抵达波次', value: '第 ${result.wave} 波'),
-          _StatRow(label: '击破敌军', value: '${result.kills}'),
-          _StatRow(label: '最高连击', value: '${result.maxCombo}'),
-          _StatRow(label: '作战时长', value: _duration(result.seconds)),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              '最高分 ${formatScore(bestScore)}',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _StatRow(label: '抵达波次', value: '第 ${result.wave} 波'),
+            _StatRow(label: '击破敌军', value: '${result.kills}'),
+            _StatRow(label: '最高连击', value: '${result.maxCombo}'),
+            _StatRow(label: '作战时长', value: _duration(result.seconds)),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -140,8 +142,7 @@ Future<PauseAction> showPauseDialog(BuildContext context) async {
           child: const Text('撤退'),
         ),
         TextButton(
-          onPressed: () =>
-              Navigator.of(dialogContext).pop(PauseAction.restart),
+          onPressed: () => Navigator.of(dialogContext).pop(PauseAction.restart),
           child: const Text('重开'),
         ),
         FilledButton(
@@ -241,7 +242,7 @@ Future<void> showLogDialog(BuildContext context, List<String> lines) {
       title: const Text('最近日志'),
       content: SizedBox(
         width: 560,
-        height: 380,
+        height: math.min(380, MediaQuery.sizeOf(context).height * 0.5),
         child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(

@@ -80,10 +80,16 @@ class BattleBullet {
     required this.radius,
     required this.fromPlayer,
     required this.color,
-  });
+  }) : prevX = x,
+       prevY = y;
 
   double x;
   double y;
+
+  /// 上一逻辑步的位置：30Hz 下单步位移可能超过子弹与敌军的半径和，
+  /// 碰撞必须用线段判定才不会穿模。
+  double prevX;
+  double prevY;
   final double vx;
   final double vy;
   double damage;

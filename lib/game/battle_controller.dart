@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 
 import '../services/log_service.dart';
@@ -37,6 +39,9 @@ class BattleController extends ChangeNotifier {
   bool get paused => sim.status == BattleStatus.paused;
   bool get finished => sim.finished;
 
+  /// 单次模拟的最大跨度：严重卡顿后不把积压时间一次性塞进战场。
+  static const double maxStepSpan = 0.12;
+
   /// 拖动的灵敏度：手指移动 1px，角色跟随 1.15 个战场单位。
   static const double dragScale = 1.15;
 
@@ -48,7 +53,7 @@ class BattleController extends ChangeNotifier {
 
   void advance(double dt) {
     if (_disposed) return;
-    _stepper.advance(dt, _step);
+    _stepper.advance(dt, (span) => _step(math.min(span, maxStepSpan)));
   }
 
   void _step(double span) {

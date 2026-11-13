@@ -144,6 +144,30 @@ void main() {
       return sim;
     }
 
+    test('击破头目必定掉落急救包与弹药箱', () {
+      final sim = readySim();
+      sim.enemies.add(
+        dummyEnemy(
+          x: sim.player.x,
+          y: sim.player.y - 40,
+          hp: 1,
+          kind: EnemyKind.boss,
+          holdY: 78,
+        ),
+      );
+      advance(sim, 0.3);
+      expect(sim.enemies.any((enemy) => enemy.isBoss), isFalse);
+      expect(sim.pickups.length, greaterThanOrEqualTo(2));
+      expect(
+        sim.pickups.any((pickup) => pickup.kind == PickupKind.medkit),
+        isTrue,
+      );
+      expect(
+        sim.pickups.any((pickup) => pickup.kind == PickupKind.ammo),
+        isTrue,
+      );
+    });
+
     test('击破步兵获得分数与连击', () {
       final sim = readySim();
       final before = sim.score;

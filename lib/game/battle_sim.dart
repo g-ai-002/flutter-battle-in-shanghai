@@ -529,6 +529,8 @@ class BattleSim {
 
   void _updateBullets(double dt) {
     for (final bullet in playerShots) {
+      bullet.prevX = bullet.x;
+      bullet.prevY = bullet.y;
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
     }
@@ -537,6 +539,8 @@ class BattleSim {
           bullet.y < -16 || bullet.x < -12 || bullet.x > Field.width + 12,
     );
     for (final bullet in enemyShots) {
+      bullet.prevX = bullet.x;
+      bullet.prevY = bullet.y;
       bullet.x += bullet.vx * dt;
       bullet.y += bullet.vy * dt;
     }
@@ -606,10 +610,18 @@ class BattleSim {
       if (!bullet.fromPlayer) continue;
       for (final enemy in enemies) {
         if (enemy.dead) continue;
-        final dx = enemy.x - bullet.x;
-        final dy = enemy.y - bullet.y;
         final limit = enemy.spec.radius + bullet.radius;
-        if (dx * dx + dy * dy > limit * limit) continue;
+        if (!_segmentHitsCircle(
+          bullet.prevX,
+          bullet.prevY,
+          bullet.x,
+          bullet.y,
+          enemy.x,
+          enemy.y,
+          limit,
+        )) {
+          continue;
+        }
         _damageEnemy(enemy, bullet.damage);
         bullet.damage = 0;
         break;
@@ -618,13 +630,45 @@ class BattleSim {
     playerShots.removeWhere((bullet) => bullet.damage <= 0);
 
     for (final bullet in enemyShots) {
-      final dx = player.x - bullet.x;
-      final dy = player.y - bullet.y;
       final limit = kPlayerRadius + bullet.radius;
-      if (dx * dx + dy * dy > limit * limit) continue;
+      if (!_segmentHitsCircle(
+        bullet.prevX,
+        bullet.prevY,
+        bullet.x,
+        bullet.y,
+        player.x,
+        player.y,
+        limit,
+      )) {
+        continue;
+      }
       if (_damagePlayer(bullet.damage)) bullet.damage = 0;
     }
     enemyShots.removeWhere((bullet) => bullet.damage <= 0);
+  }
+
+  /// 线段与圆是否相交：用上一位置到当前位置的轨迹判定命中。
+  bool _segmentHitsCircle(
+    double x1,
+    double y1,
+    double x2,
+    double y2,
+    double cx,
+    double cy,
+    double radius,
+  ) {
+    final dx = x2 - x1;
+    final dy = y2 - y1;
+    final lengthSquared = dx * dx + dy * dy;
+    var t = 0.0;
+    if (lengthSquared > 0) {
+      t = (((cx - x1) * dx + (cy - y1) * dy) / lengthSquared).clamp(0.0, 1.0);
+    }
+    final px = x1 + dx * t;
+    final py = y1 + dy * t;
+    final offsetX = cx - px;
+    final offsetY = cy - py;
+    return offsetX * offsetX + offsetY * offsetY <= radius * radius;
   }
 
   void _resolvePickupGrab() {
@@ -750,25 +794,23 @@ class BattleSim {
   }
 
   void _dropPickup(EnemyUnit enemy) {
-    final roll = _random.nextDouble();
-    final chance = enemy.isElite ? 0.55 : 0.15;
-    if (roll > chance) return;
-    final kind = _rollPickupKind();
+    // 头目必掉双补给，其余的精英必掉一件，普通敌兵按概率掉落。
+    if (enemy.isBoss) {
+      pickups.addAll([
+        PickupItem(kind: PickupKind.medkit, x: 120, y: 200),
+        PickupItem(kind: PickupKind.ammo, x: 180, y: 200),
+      ]);
+      return;
+    }
+    final chance = enemy.isElite ? 1.0 : 0.15;
+    if (_random.nextDouble() > chance) return;
     pickups.add(
       PickupItem(
-        kind: kind,
+        kind: _rollPickupKind(),
         x: enemy.x.clamp(20.0, Field.width - 20),
         y: enemy.y.clamp(60.0, Field.height - 40),
       ),
     );
-    if (enemy.isBoss) {
-      pickups.add(
-        PickupItem(kind: PickupKind.medkit, x: 120, y: 200),
-      );
-      pickups.add(
-        PickupItem(kind: PickupKind.ammo, x: 180, y: 200),
-      );
-    }
   }
 
   PickupKind _rollPickupKind() {
