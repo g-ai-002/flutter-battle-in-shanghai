@@ -316,6 +316,161 @@ void main() {
     });
   });
 
+  group('工事与掩体', () {
+    BattleSim readySim() {
+      final sim = makeSim()..start();
+      advance(sim, 1.7);
+      sim.enemies.clear();
+      return sim;
+    }
+
+    test('开局布置两处工事，站在后方即可进入掩护状态', () {
+      final sim = makeSim()..start();
+      expect(sim.covers, hasLength(2));
+      expect(sim.coverLimit, kCoverMax);
+
+      final cover = sim.covers.first;
+      sim.player.x = cover.x;
+      sim.player.y = cover.y + 20;
+      expect(sim.sheltering, isTrue);
+
+      sim.player.y = cover.y - 20;
+      expect(sim.sheltering, isFalse);
+      sim.player.y = cover.y + 20;
+      sim.player.x = cover.x + kCoverHalfWidth + 40;
+      expect(sim.sheltering, isFalse);
+    });
+
+    test('掩护状态下受到的伤害减少四成', () {
+      final sim = readySim();
+      final cover = sim.covers.first;
+      sim.player.x = cover.x;
+      sim.player.y = cover.y + 20;
+      sim.enemyShots.add(
+        BattleBullet(
+          x: sim.player.x,
+          y: sim.player.y,
+          vx: 0,
+          vy: 0,
+          damage: 20,
+          radius: 3,
+          fromPlayer: false,
+          color: const Color(0xFF000000),
+        ),
+      );
+      final hp = sim.player.hp;
+      advance(sim, 1 / 60);
+      expect(sim.player.hp, closeTo(hp - 12, 1e-9));
+    });
+
+    test('敌军子弹被沙袋吸收，工事掉血', () {
+      final sim = readySim();
+      sim.player.fireCooldown = 999;
+      final cover = sim.covers.first;
+      final hp = cover.hp;
+      sim.enemyShots.add(
+        BattleBullet(
+          x: cover.x,
+          y: cover.top - 12,
+          vx: 0,
+          vy: 120,
+          damage: 30,
+          radius: 3,
+          fromPlayer: false,
+          color: const Color(0xFF000000),
+        ),
+      );
+      advance(sim, 0.2);
+      expect(sim.enemyShots, isEmpty);
+      expect(cover.hp, lessThan(hp));
+      expect(sim.player.hp, kPlayerMaxHp);
+    });
+
+    test('步兵被工事挡住，一边挖沙袋一边停下', () {
+      final sim = readySim();
+      sim.player.fireCooldown = 999;
+      final cover = sim.covers.first;
+      final enemy = dummyEnemy(
+        x: cover.x,
+        y: cover.top - 6,
+        hp: 40000,
+      );
+      sim.enemies.add(enemy);
+      final hp = cover.hp;
+      advance(sim, 0.6);
+      expect(enemy.y, lessThan(cover.bottom + 20));
+      expect(cover.hp, lessThan(hp));
+      expect(sim.player.hp, kPlayerMaxHp);
+    });
+
+    test('工事有冷却与数量上限，重开后复位', () {
+      final sim = readySim();
+      sim.player.fireCooldown = 999;
+      sim.player.x = 40;
+      expect(sim.deployCover(), isTrue);
+      expect(sim.covers, hasLength(3));
+      expect(sim.coverCooldownLeft, greaterThan(0));
+      expect(sim.deployCover(), isFalse);
+
+      sim.restart();
+      expect(sim.covers, hasLength(2));
+      expect(sim.coverCooldownLeft, 0);
+    });
+
+    test('工事到期后自动拆除', () {
+      final sim = readySim();
+      final cover = sim.covers.first;
+      cover.life = 0.05;
+      advance(sim, 0.2);
+      expect(sim.covers, hasLength(1));
+      expect(sim.cues, contains(BattleCue.cover));
+    });
+  });
+
+  group('空袭支援', () {
+    test('呼叫后进入冷却，炸弹落地清除集群', () {
+      final sim = makeSim()..start();
+      advance(sim, 9);
+      sim.enemies.clear();
+      sim.player.fireCooldown = 999;
+      final cluster = [
+        for (var i = 0; i < 3; i++)
+          dummyEnemy(x: 120.0 + i * 14, y: 120, hp: 120),
+      ];
+      sim.enemies.addAll(cluster);
+      expect(sim.airstrikeCooldownLeft, 0);
+      expect(sim.callAirstrike(), isTrue);
+      expect(sim.airstrikeCooldownLeft, greaterThan(0));
+      expect(sim.callAirstrike(), isFalse);
+      expect(sim.hazards, hasLength(kAirstrikeBombs));
+      expect(
+        sim.hazards.every((hazard) => hazard.kind == HazardKind.bomb),
+        isTrue,
+      );
+
+      advance(sim, 2.4);
+      expect(sim.hazards, isEmpty);
+      // 后续波次可能已经补进新敌军，只要求被瞄准的这一群全部被清除。
+      expect(sim.enemies.any(cluster.contains), isFalse);
+      expect(sim.kills, greaterThanOrEqualTo(3));
+    });
+
+    test('开局需要等待片刻才能呼叫空袭，炸弹不会伤到自己', () {
+      final sim = makeSim()..start();
+      expect(sim.airstrikeCooldownLeft, greaterThan(0));
+      expect(sim.callAirstrike(), isFalse);
+      advance(sim, 8.2);
+      sim.enemies.clear();
+      sim.enemies.add(dummyEnemy(x: 150, y: 120, hp: 4000));
+      sim.player.fireCooldown = 999;
+      final hp = sim.player.hp;
+      expect(sim.callAirstrike(), isTrue);
+      advance(sim, 2);
+      expect(sim.player.hp, hp);
+      expect(sim.enemies.single.hp, lessThan(4000));
+    });
+  });
+
   group('波次推进', () {
     test('清空一波后进入下一波，并给出波次奖励', () {
       final sim = makeSim()..start();

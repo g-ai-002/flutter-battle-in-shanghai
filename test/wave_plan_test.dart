@@ -56,6 +56,32 @@ void main() {
       expect(ace.length, recruit.length);
       expect(ace.first.at, lessThan(recruit.first.at));
     });
+
+    test('每波都有独立的阵型名称，播报里能看出打法变化', () {
+      final waves = campaignWaves(Difficulty.veteran);
+      final names = waves.map((wave) => wave.name).toSet();
+      expect(names, hasLength(waves.length));
+      for (final name in names) {
+        expect(name, isNotEmpty);
+      }
+      expect(waves.first.name, '前哨试探');
+      expect(waves[1].name, '两翼夹击');
+      expect(waves.last.name, '头目决战');
+    });
+
+    test('中后期波次混编多种兵种，不只是步兵海', () {
+      final waves = campaignWaves(Difficulty.veteran);
+      for (final wave in waves.skip(2)) {
+        final kinds = wave.orders.map((order) => order.kind).toSet();
+        expect(kinds.length, greaterThanOrEqualTo(3), reason: wave.name);
+      }
+      expect(
+        waves[3].orders
+            .where((order) => order.kind == EnemyKind.armoredCar)
+            .length,
+        2,
+      );
+    });
   });
 
   group('无尽波次', () {

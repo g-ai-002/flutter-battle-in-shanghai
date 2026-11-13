@@ -17,7 +17,8 @@ void main() {
       expect(director.wave, 1);
       expect(director.waveBreak, WaveDirector.waveBreakSeconds);
       expect(director.announcing, isTrue);
-      expect(director.announcement, '第 1 波 · 敌军逼近');
+      expect(director.announcement, '第 1 波 · 前哨试探');
+      expect(director.waveName, '前哨试探');
       expect(director.phaseBrief, '敌军集结中');
       expect(director.pendingSpawns, greaterThan(0));
       expect(director.allSpawned, isFalse);

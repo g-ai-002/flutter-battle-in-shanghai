@@ -80,6 +80,28 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('工事按钮布置沙袋，达到上限后禁用', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpGame(tester);
+    final controls = tester.widget<BattleControls>(
+      find.byType(BattleControls),
+    );
+    expect(controls.controller.sim.covers, hasLength(2));
+    expect(find.text('工事'), findsOneWidget);
+    expect(find.byIcon(Icons.flight_rounded), findsOneWidget);
+
+    await tester.tap(find.text('工事'));
+    await tester.pump();
+    expect(controls.controller.sim.covers, hasLength(3));
+    expect(find.text('工事 3/3'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('暂停菜单可以继续战斗', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1.0;

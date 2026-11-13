@@ -45,4 +45,28 @@ void main() {
     recorder.endRecording().dispose();
     painter.dispose();
   });
+
+  test('工事、航弹与空袭飞机同时出现时也能正常绘制', () {
+    final sim = BattleSim(
+      mode: BattleMode.campaign,
+      difficulty: Difficulty.veteran,
+    )..start();
+    for (var i = 0; i < 540; i++) {
+      sim.update(1 / 60);
+    }
+    expect(sim.covers, isNotEmpty);
+    expect(sim.callAirstrike(), isTrue);
+    sim.update(1 / 60);
+    sim.deployCover();
+
+    final painter = BattleScenePainter(sim: sim);
+    for (var frame = 0; frame < 40; frame++) {
+      sim.update(1 / 30);
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      expect(() => painter.paint(canvas, frame / 30), returnsNormally);
+      recorder.endRecording().dispose();
+    }
+    painter.dispose();
+  });
 }

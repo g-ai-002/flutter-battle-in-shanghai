@@ -45,6 +45,25 @@ void main() {
     });
   });
 
+  group('矩形扫掠命中', () {
+    test('线段横穿薄墙时命中，两端都在墙外', () {
+      expect(segmentHitsBox(50, 0, 50, 300, 20, 140, 80, 160), isTrue);
+    });
+
+    test('线段从墙边擦过时不命中', () {
+      expect(segmentHitsBox(10, 0, 10, 300, 20, 140, 80, 160), isFalse);
+      expect(segmentHitsBox(81, 0, 81, 300, 20, 140, 80, 160), isFalse);
+    });
+
+    test('端点落在墙内直接命中', () {
+      expect(segmentHitsBox(40, 150, 40, 152, 20, 140, 80, 160), isTrue);
+    });
+
+    test('线段停在墙前不命中', () {
+      expect(segmentHitsBox(50, 0, 50, 139, 20, 140, 80, 160), isFalse);
+    });
+  });
+
   group('最近敌军', () {
     test('忽略已死亡单位，返回距离最近的一个', () {
       final near = enemyAt(110, 300);
