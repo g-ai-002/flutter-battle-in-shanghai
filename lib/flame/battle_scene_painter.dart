@@ -187,7 +187,10 @@ class BattleScenePainter {
         ),
         _fillPaint(const Color(0x55000000)),
       );
-      final center = Offset(hazard.x, hazard.y - hazard.lift);
+      // 手雷走抛物线，航弹从天上垂直落下。
+      final center = bomb
+          ? Offset(hazard.x, hazard.y)
+          : Offset(hazard.x, hazard.y - hazard.lift);
       if (bomb) {
         // 航弹：细长弹体 + 尾翼
         canvas.drawOval(
