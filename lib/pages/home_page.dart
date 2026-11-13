@@ -1,0 +1,386 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../game/battle_config.dart';
+import '../models/records.dart';
+import '../providers/settings_provider.dart';
+import '../theme/app_theme.dart';
+import '../utils/constants.dart';
+import 'game_page.dart';
+import 'settings_page.dart';
+import 'widgets/battlefield_stage.dart';
+import 'widgets/entry_tile.dart';
+import 'widgets/game_dialogs.dart';
+import 'widgets/preference_pickers.dart';
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final entries = _entries(context, settings, colors);
+
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? const [Color(0xFF241A13), Color(0xFF0F0C08)]
+                : const [Color(0xFFF7EFDF), Color(0xFFEADCC2)],
+          ),
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 宽屏改为「左侧主视觉 + 右侧入口」，一屏放下全部入口。
+              final wide =
+                  constraints.maxWidth >= 980 && constraints.maxHeight >= 620;
+              final horizontal = constraints.maxWidth >= 900 ? 40.0 : 20.0;
+              final maxContent = wide ? 1180.0 : 760.0;
+              return SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: math.max(0, constraints.maxHeight - 38),
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContent),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _TopBar(darkMode: settings.darkMode),
+                          const SizedBox(height: 20),
+                          if (wide)
+                            Row(
+                              children: [
+                                const Expanded(child: _Hero()),
+                                const SizedBox(width: 44),
+                                SizedBox(
+                                  width: 500,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _EntryGrid(entries: entries),
+                                      const SizedBox(height: 18),
+                                      _Loadout(settings: settings),
+                                      const SizedBox(height: 14),
+                                      _StatsLine(records: settings.records),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            )
+                          else ...[
+                            const _Hero(),
+                            const SizedBox(height: 26),
+                            _Loadout(settings: settings),
+                            const SizedBox(height: 16),
+                            _EntryGrid(entries: entries),
+                            const SizedBox(height: 18),
+                            _StatsLine(records: settings.records),
+                          ],
+                          const SizedBox(height: 16),
+                          Text(
+                            'v${AppConstants.version} · 本地运行，无需联网',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _start(BuildContext context, BattleMode mode) {
+    final settings = context.read<SettingsProvider>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => GamePage(
+          mode: mode,
+          difficulty: settings.difficulty,
+        ),
+      ),
+    );
+  }
+
+  /// 首页四个入口，宽屏两列、窄屏单列都复用同一份定义。
+  List<Widget> _entries(
+    BuildContext context,
+    SettingsProvider settings,
+    ColorScheme colors,
+  ) => [
+    EntryTile(
+      leading: EntryBadge(
+        icon: Icons.military_tech_rounded,
+        accent: colors.primary,
+      ),
+      title: '战役模式',
+      subtitle: '五波敌军 · 击退头目 · ${settings.difficulty.label}',
+      onTap: () => _start(context, BattleMode.campaign),
+    ),
+    EntryTile(
+      leading: const EntryBadge(
+        icon: Icons.all_inclusive_rounded,
+        accent: appGold,
+      ),
+      title: '无尽模式',
+      subtitle: '敌军无穷 · 挑战最高分',
+      onTap: () => _start(context, BattleMode.endless),
+    ),
+    EntryTile(
+      leading: EntryBadge(
+        icon: Icons.menu_book_rounded,
+        accent: colors.tertiary,
+      ),
+      title: '作战说明',
+      subtitle: '操作 · 敌军 · 补给 · 计分',
+      onTap: () => showRulesDialog(context),
+    ),
+    EntryTile(
+      leading: EntryBadge(
+        icon: Icons.tune_rounded,
+        accent: colors.secondary,
+      ),
+      title: '设置',
+      subtitle: '难度 · 刷新率 · 音效 · 日志',
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+      ),
+    ),
+  ];
+}
+
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.darkMode});
+
+  final bool darkMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.read<SettingsProvider>();
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(color: colors.primary, width: 1.4),
+          ),
+          child: Text(
+            '战',
+            style: TextStyle(
+              fontSize: 19,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              color: colors.primary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              AppConstants.appName,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const Text(
+              'BATTLE IN SHANGHAI',
+              style: TextStyle(
+                fontSize: 8.5,
+                letterSpacing: 1.3,
+                color: Color(0xFFA99C8A),
+              ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        IconButton(
+          tooltip: darkMode ? '切换浅色' : '切换深色',
+          onPressed: () => settings.setDarkMode(!darkMode),
+          icon: Icon(
+            darkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            size: 21,
+          ),
+        ),
+        IconButton(
+          tooltip: '设置',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
+          ),
+          icon: const Icon(Icons.settings_outlined, size: 21),
+        ),
+      ],
+    );
+  }
+}
+
+class _Hero extends StatelessWidget {
+  const _Hero();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      children: [
+        const BattlefieldPreview(),
+        const SizedBox(height: 18),
+        Text(
+          '血战上海滩',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.headlineMedium?.copyWith(
+            fontSize: 32,
+            letterSpacing: 9,
+            color: colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _OrnamentLine(color: colors.outline),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                '一 九 三 七 · 闸 北',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  letterSpacing: 2.4,
+                ),
+              ),
+            ),
+            _OrnamentLine(color: colors.outline),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '一条街，一座城；弹药有限，退路为零。',
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 出战配置：敌军强度与逻辑刷新率。
+class _Loadout extends StatelessWidget {
+  const _Loadout({required this.settings});
+
+  final SettingsProvider settings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          DifficultyPicker(settings: settings),
+          const SizedBox(height: 12),
+          LogicRatePicker(settings: settings),
+        ],
+      ),
+    );
+  }
+}
+
+class _EntryGrid extends StatelessWidget {
+  const _EntryGrid({required this.entries});
+
+  final List<Widget> entries;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoColumns = constraints.maxWidth >= 460;
+        final width = twoColumns
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final entry in entries) SizedBox(width: width, child: entry),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// 首页底部的战绩一行：最高分、最远波次与累计击杀。
+class _StatsLine extends StatelessWidget {
+  const _StatsLine({required this.records});
+
+  final BattleRecords records;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.emoji_events_outlined,
+          size: 15,
+          color: colors.primary,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            records.summary,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OrnamentLine extends StatelessWidget {
+  const _OrnamentLine({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 34, height: 1, color: color.withValues(alpha: 0.9));
+  }
+}
