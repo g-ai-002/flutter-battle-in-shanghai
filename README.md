@@ -19,6 +19,7 @@
 - 🎨 **全程序化美术**：街道、屋顶、探照灯、街垒、士兵、战车与爆炸全部由 Canvas 绘制，仓库不存放图片资源。
 - 🔊 **全程序化音频**：十种提示音与 8 秒军鼓号声循环在运行时合成，SoLoud 内存音源播放，仓库不存放音频文件。
 - ⚡ **固定步长战斗**：逻辑 30 / 60 / 120Hz 可选（默认 60Hz），与渲染刷新解耦；暂停、切后台立即停帧。
+- 🖼️ **静态图层缓存**：路面、屋顶、暗角与环境光预渲染成位图，粒子对象池复用，稳态帧不再反复建渐变与画笔。
 - 📱 **自适应布局**：手机 / 折叠屏 / 平板 / Windows 窗口自适应；战场居中，标题与生命在上、得分在右上、
   战况与头目血条浮在战场上方或左侧、控制按钮统一在下方；窄屏自动切换紧凑 HUD。
 - 🔄 **按面积选方向**：3:4 的战场在手机上竖屏更大，只有横屏确实能放大战场时才旋转全屏，退出即恢复。
@@ -28,13 +29,13 @@
 
 ## 下载
 
-最新版本 v0.1.1：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.1)
+最新版本 v0.1.2：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.2)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.1.1-android-aarch64.apk` |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.1.2-android-aarch64.apk` |
 | Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
-| Web | `flutter-battle-in-shanghai-0.1.1-web.zip`（解压后起静态服务器） |
+| Web | `flutter-battle-in-shanghai-0.1.2-web.zip`（解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages>
 
@@ -42,6 +43,7 @@
 
 | 版本 | 简介 |
 | --- | --- |
+| v0.1.2 | 静态图层位图缓存、粒子池化、绘制复用与停帧，背景绘制耗时约降 67% |
 | v0.1.1 | 重构波次调度、碰撞判定与战场渲染分层，修复爆炸抖动残留 |
 | v0.1.0 | 首个可玩版本：五波战役、无尽模式与三端构建发布 |
 
@@ -69,7 +71,7 @@ flutter test
 
 ```
 lib/
-├── flame/       Flame 游戏入口与战场渲染组件
+├── flame/       Flame 游戏入口、战场渲染与静态图层缓存
 ├── game/        战斗模拟、实体、波次、配置与控制器
 ├── models/      战绩模型
 ├── pages/       首页、战斗页、设置页与悬浮 HUD 组件

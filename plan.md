@@ -43,7 +43,8 @@
 
 ### v0.1.2 (PATCH) — 2026-11-14
 
-- **状态**: 发布中 🚧
+- **状态**: 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.2)）
+- **发布说明**: Android 与 Web 产物已随 Release 发布；构建时 `windows-flutter` runner 不在线，Windows 任务排队未执行，runner 恢复后补发。测试、Android 与 Web 三项 CI 任务均通过。
 - **目标**: 性能与流畅度专项优化，不改变玩法、数值与操作手感。
 - **类型**: 性能优化（与 0.1.1 的重构版本相互独立）
 - **任务**:
