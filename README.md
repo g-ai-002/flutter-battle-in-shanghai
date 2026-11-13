@@ -33,12 +33,14 @@
 
 ## 下载
 
-最新版本 v0.2.1：Tag 已推送，CI 构建进行中（平台产物随 Gitea Release 发布）。
+最新版本 v0.2.1：Tag 已推送并完成 CI 构建（[Run 3111](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3111)），
+测试、Android 与 Web 三项通过；构建时 `windows-flutter` runner 不在线，Windows 任务排队未执行。
+Android 与 Web 产物已在该 Run 的 Artifacts 中，Web 版本已部署到在线试玩地址。
 
 | 平台 | 产物 |
 | --- | --- |
 | Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.2.1-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.2.1-windows-x86_64.zip`（runner 在线时随 Release 发布） |
+| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
 | Web | `flutter-battle-in-shanghai-0.2.1-web.zip`（解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.2.1/>

@@ -46,7 +46,7 @@
 
 ### v0.2.1 (PATCH) — 2026-11-14
 
-- **状态**: ⏳ 构建中（Tag 已推送，等待 CI 结果）。
+- **状态**: ⏳ 构建完成（[Run 3111](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3111)：测试、Android、Web 三项通过）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 重构 0.2.0 的增量代码，让工事、空袭、掉落与反馈各自成模块，玩法、数值与手感保持不变。
 - **类型**: 重构优化（与 0.2.2 的性能专项相互独立）
 - **任务**:
