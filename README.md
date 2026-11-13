@@ -33,7 +33,7 @@ v0.1.0：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shan
 | 平台 | 产物 |
 | --- | --- |
 | Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.1.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.1.0-windows-x86_64.zip` |
+| Windows (x64, Win10+) | 待补：v0.1.0 构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
 | Web | `flutter-battle-in-shanghai-0.1.0-web.zip`（解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages>

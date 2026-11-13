@@ -43,7 +43,8 @@
 
 ### v0.1.0 (MINOR) — 2026-11-14
 
-- **状态**: 待发布
+- **状态**: 已发布 ✅（[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.0)）
+- **发布说明**: Android 与 Web 产物已随 Release 发布；构建时 Windows runner 不在线，Windows 任务排队未执行，待 runner 恢复后补发。
 - **目标**: 交付首个可玩版本：完整的街巷射击循环、程序化美术与音效、三端构建发布链路。
 - **任务**:
   - [x] 战场模拟 `BattleSim`：固定步长、玩家移动、自动射击、敌军 AI、碰撞与胜负判定
