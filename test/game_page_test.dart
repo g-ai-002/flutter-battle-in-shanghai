@@ -1,6 +1,7 @@
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/game/logic_rate.dart';
 import 'package:battle_in_shanghai/pages/game_page.dart';
+import 'package:battle_in_shanghai/pages/widgets/control_bar.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/app_theme.dart';
@@ -95,6 +96,30 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('战斗暂停'), findsNothing);
     expect(find.text('暂停'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('连续触发暂停只弹出一个菜单', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpGame(tester);
+    final controls = tester.widget<BattleControls>(
+      find.byType(BattleControls),
+    );
+    controls.onOpenPause();
+    controls.onOpenPause();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('战斗暂停'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '继续'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('战斗暂停'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

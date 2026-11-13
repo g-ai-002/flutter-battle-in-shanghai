@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../../game/battle_config.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/constants.dart';
 import '../../utils/formatters.dart';
+import 'stat_row.dart';
 
 /// 终局结算：得分、击杀、波次与最高分对比。
 Future<void> showBattleResultDialog(
@@ -99,10 +99,26 @@ Future<void> showBattleResultDialog(
               ),
             ),
             const SizedBox(height: 14),
-            _StatRow(label: '抵达波次', value: '第 ${result.wave} 波'),
-            _StatRow(label: '击破敌军', value: '${result.kills}'),
-            _StatRow(label: '最高连击', value: '${result.maxCombo}'),
-            _StatRow(label: '作战时长', value: _duration(result.seconds)),
+            StatRow(
+              label: '抵达波次',
+              value: '第 ${result.wave} 波',
+              padding: const EdgeInsets.symmetric(vertical: 3),
+            ),
+            StatRow(
+              label: '击破敌军',
+              value: '${result.kills}',
+              padding: const EdgeInsets.symmetric(vertical: 3),
+            ),
+            StatRow(
+              label: '最高连击',
+              value: '${result.maxCombo}',
+              padding: const EdgeInsets.symmetric(vertical: 3),
+            ),
+            StatRow(
+              label: '作战时长',
+              value: _duration(result.seconds),
+              padding: const EdgeInsets.symmetric(vertical: 3),
+            ),
           ],
         ),
       ),
@@ -153,28 +169,6 @@ Future<PauseAction> showPauseDialog(BuildContext context) async {
     ),
   );
   return action ?? PauseAction.resume;
-}
-
-/// 撤退二次确认。
-Future<bool> confirmRetreat(BuildContext context) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('放弃本局？'),
-      content: const Text('撤退将结束当前战斗，本局成绩仍会记入战绩。'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(false),
-          child: const Text('继续战斗'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(true),
-          child: const Text('撤退'),
-        ),
-      ],
-    ),
-  );
-  return confirmed ?? false;
 }
 
 /// 作战说明：操作、敌军与补给。
@@ -267,38 +261,6 @@ Future<void> showLogDialog(BuildContext context, List<String> lines) {
   );
 }
 
-class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RuleSection extends StatelessWidget {
   const _RuleSection({required this.title, required this.lines});
 
@@ -338,7 +300,3 @@ String _duration(double seconds) {
   final rest = total % 60;
   return '${minutes.toString().padLeft(2, '0')}:${rest.toString().padLeft(2, '0')}';
 }
-
-/// 用统一的版本号文案生成关于信息。
-String aboutLine() =>
-    '${AppConstants.appName} v${AppConstants.version} · 本地运行，无需联网';

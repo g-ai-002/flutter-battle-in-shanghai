@@ -85,7 +85,7 @@ class WeaponLine extends StatelessWidget {
     final colors = theme.colorScheme;
     final compact = HudScope.compactOf(context);
     final weapon = sim.player.weapon;
-    final spec = WeaponSpec.specs[weapon]!;
+    final spec = sim.player.weaponSpec;
     final seconds = sim.weaponSecondsLeft;
     return Row(
       mainAxisSize: MainAxisSize.min,

@@ -6,9 +6,12 @@ import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_info.dart';
+import '../utils/formatters.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
+import 'widgets/stat_row.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -87,14 +90,11 @@ class SettingsPage extends StatelessWidget {
             title: '战绩',
             icon: Icons.emoji_events_outlined,
             children: [
-              _StatRow(label: '最高分', value: '${records.bestScore}'),
-              _StatRow(label: '最远波次', value: '第 ${records.bestWave} 波'),
-              _StatRow(label: '累计击杀', value: '${records.totalKills}'),
-              _StatRow(
-                label: '出战次数',
-                value: '${records.runs}',
-              ),
-              _StatRow(
+              StatRow(label: '最高分', value: formatScore(records.bestScore)),
+              StatRow(label: '最远波次', value: '第 ${records.bestWave} 波'),
+              StatRow(label: '累计击杀', value: '${records.totalKills}'),
+              StatRow(label: '出战次数', value: '${records.runs}'),
+              StatRow(
                 label: '通关次数',
                 value:
                     '${records.victories}'
@@ -226,38 +226,6 @@ class _SwitchRow extends StatelessWidget {
             ),
           ),
           Switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatRow extends StatelessWidget {
-  const _StatRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
         ],
       ),
     );

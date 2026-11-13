@@ -41,6 +41,7 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   bool _recorded = false;
   bool _allowPop = false;
   bool _pausedByLifecycle = false;
+  bool _pauseDialogOpen = false;
   int _bestBefore = 0;
 
   @override
@@ -159,25 +160,31 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
   }
 
   Future<void> _openPause() async {
-    if (_controller.finished) return;
+    if (_pauseDialogOpen || _controller.finished) return;
+    _pauseDialogOpen = true;
     final wasRunning = _controller.status == BattleStatus.running;
     if (wasRunning) {
       _controller.pause();
       _game.sleep();
     }
-    final action = await showPauseDialog(context);
-    switch (action) {
-      case PauseAction.resume:
-        _controller.resume();
-        _game.wake();
-        _focusNode.requestFocus();
-      case PauseAction.restart:
-        _restart();
-      case PauseAction.exit:
-        final sim = _controller.sim;
-        // 刚开局就撤退不必污染战绩。
-        if (sim.score > 0 || sim.kills > 0) _recordRun(sim.result);
-        _exit();
+    try {
+      final action = await showPauseDialog(context);
+      if (!mounted) return;
+      switch (action) {
+        case PauseAction.resume:
+          _controller.resume();
+          _game.wake();
+          _focusNode.requestFocus();
+        case PauseAction.restart:
+          _restart();
+        case PauseAction.exit:
+          final sim = _controller.sim;
+          // 刚开局就撤退不必污染战绩。
+          if (sim.score > 0 || sim.kills > 0) _recordRun(sim.result);
+          _exit();
+      }
+    } finally {
+      _pauseDialogOpen = false;
     }
   }
 

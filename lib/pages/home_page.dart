@@ -7,6 +7,7 @@ import '../game/battle_config.dart';
 import '../models/records.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_info.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
 import 'settings_page.dart';
@@ -95,7 +96,7 @@ class HomePage extends StatelessWidget {
                           ],
                           const SizedBox(height: 16),
                           Text(
-                            'v${AppConstants.version} · 本地运行，无需联网',
+                            versionLine(),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.onSurfaceVariant,
                             ),

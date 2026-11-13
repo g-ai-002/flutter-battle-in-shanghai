@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 入口卡片：左侧徽章 + 标题/副标题 + 右侧箭头，首页模式入口与残局关卡共用。
+/// 入口卡片：左侧徽章 + 标题/副标题 + 右侧箭头，首页模式入口共用。
 class EntryTile extends StatelessWidget {
   const EntryTile({
     super.key,
@@ -21,7 +21,7 @@ class EntryTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  /// 标题右侧的标签，例如残局的「红先 · 1 步杀」。
+  /// 标题右侧的标签，例如难度或状态。
   final Widget? trailing;
 
   final double radius;
