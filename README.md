@@ -33,22 +33,21 @@
 
 ## 下载
 
-最新版本 v0.2.0：Tag 已推送并完成 CI 构建（[Run 3105](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3105)），
-构建时 `windows-flutter` runner 不在线，Release 待 runner 恢复后由 CI 补发；
-Android 与 Web 产物已在该 Run 的 Artifacts 中。
+最新版本 v0.2.1：Tag 已推送，CI 构建进行中（平台产物随 Gitea Release 发布）。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.2.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
-| Web | `flutter-battle-in-shanghai-0.2.0-web.zip`（解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.2.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.2.1-windows-x86_64.zip`（runner 在线时随 Release 发布） |
+| Web | `flutter-battle-in-shanghai-0.2.1-web.zip`（解压后起静态服务器） |
 
-在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.2.0/>
+在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.2.1/>
 
 ## 版本
 
 | 版本 | 简介 |
 | --- | --- |
+| v0.2.1 | 重构 0.2.0 增量代码：工事、空袭、掉落、反馈与波次编排各自成模块，玩法不变 |
 | v0.2.0 | 沙袋工事与空袭支援，战役五波改为前哨/夹击/压制/突袭/决战阵型 |
 | v0.1.2 | 静态图层位图缓存、粒子池化、绘制复用与停帧，背景绘制耗时约降 67% |
 | v0.1.1 | 重构波次调度、碰撞判定与战场渲染分层，修复爆炸抖动残留 |
@@ -79,11 +78,11 @@ flutter test
 ```
 lib/
 ├── flame/       Flame 游戏入口、战场渲染与静态图层缓存
-├── game/        战斗模拟、实体、波次、配置与控制器
+├── game/        战斗模拟、实体、工事、空袭、掉落、反馈、波次、配置与控制器
 ├── models/      战绩模型
 ├── pages/       首页、战斗页、设置页与悬浮 HUD 组件
 ├── providers/   偏好状态
 ├── services/    日志、存储、音效合成与播放
-├── theme/       主题与程序化战场美术
+├── theme/       主题、程序化战场美术与共用画笔
 └── utils/       布局几何、横竖屏判定、窗口与系统栏
 ```
