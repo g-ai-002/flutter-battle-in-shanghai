@@ -28,15 +28,22 @@
 
 ## 下载
 
-v0.1.0：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.0)
+最新版本 v0.1.1：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.1.1)
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.1.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | 待补：v0.1.0 构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
-| Web | `flutter-battle-in-shanghai-0.1.0-web.zip`（解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.1.1-android-aarch64.apk` |
+| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
+| Web | `flutter-battle-in-shanghai-0.1.1-web.zip`（解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages>
+
+## 版本
+
+| 版本 | 简介 |
+| --- | --- |
+| v0.1.1 | 重构波次调度、碰撞判定与战场渲染分层，修复爆炸抖动残留 |
+| v0.1.0 | 首个可玩版本：五波战役、无尽模式与三端构建发布 |
 
 ## 开发
 
