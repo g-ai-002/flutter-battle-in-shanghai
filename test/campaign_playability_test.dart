@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:battle_in_shanghai/game/battle_config.dart';
+import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/battle_sim.dart';
 import 'package:battle_in_shanghai/game/entities.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -47,6 +48,23 @@ void main() {
     expect(sim.kills, greaterThanOrEqualTo(30));
     expect(sim.score, greaterThan(5000));
     expect(sim.player.hp, greaterThan(0));
+  });
+
+  test('三处阵地在老兵难度下都可以打通', () {
+    for (final scene in BattleScene.values) {
+      final sim = BattleSim(
+        mode: BattleMode.campaign,
+        difficulty: Difficulty.veteran,
+        scene: scene,
+        random: math.Random(42),
+      )..start();
+      playCampaign(sim);
+
+      expect(sim.status, BattleStatus.won, reason: scene.label);
+      expect(sim.wave, kCampaignWaves, reason: scene.label);
+      expect(sim.kills, greaterThanOrEqualTo(25), reason: scene.label);
+      expect(sim.player.hp, greaterThan(0), reason: scene.label);
+    }
   });
 
   test('王牌难度下通关更吃力，但仍有胜算', () {

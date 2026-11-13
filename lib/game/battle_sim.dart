@@ -307,7 +307,10 @@ class BattleSim {
   }
 
   void _updateEnemies(double dt) {
-    for (final enemy in enemies) {
+    // 头目会在开火时召唤步兵，因此按下标遍历：新兵当帧一并推进，
+    // 也不会在迭代中途改写列表。
+    for (var i = 0; i < enemies.length; i++) {
+      final enemy = enemies[i];
       enemy.timer += dt;
       enemy.hitFlash = math.max(0, enemy.hitFlash - dt * 4);
       enemy.spawnGuard = math.max(0, enemy.spawnGuard - dt);
