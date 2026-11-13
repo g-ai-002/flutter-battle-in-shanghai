@@ -46,7 +46,7 @@
 
 ### v0.2.0 (MINOR) — 2026-11-14
 
-- **状态**: ⏳ 已推送 Tag，等待 CI 产出三端产物后发布
+- **状态**: ⏳ 构建完成（[Run 3105](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3105)：测试、Android、Web 三项通过）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 增加守备玩法与火力支援，让五波战役从「站桩输出」变成「选位 + 换位」。
 - **类型**: 新功能（向下兼容，规则与手感在 0.1.x 基础上扩展）
 - **任务**:

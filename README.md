@@ -33,7 +33,9 @@
 
 ## 下载
 
-最新版本 v0.2.0：[Gitea Release](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.2.0)
+最新版本 v0.2.0：Tag 已推送并完成 CI 构建（[Run 3105](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3105)），
+构建时 `windows-flutter` runner 不在线，Release 待 runner 恢复后由 CI 补发；
+Android 与 Web 产物已在该 Run 的 Artifacts 中。
 
 | 平台 | 产物 |
 | --- | --- |
@@ -41,7 +43,7 @@
 | Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
 | Web | `flutter-battle-in-shanghai-0.2.0-web.zip`（解压后起静态服务器） |
 
-在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages>
+在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.2.0/>
 
 ## 版本
 
