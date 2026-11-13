@@ -393,4 +393,25 @@ void main() {
       expect(sim.cues, contains(BattleCue.explosion));
     });
   });
+
+  group('视觉反馈', () {
+    test('爆炸抖动按时间衰减，不会永久停留', () {
+      final sim = makeSim()..start();
+      // 关掉自动射击，避免枪口抖动干扰衰减断言。
+      sim.player.fireCooldown = 999;
+      sim.shake = 12;
+      advance(sim, 0.1);
+      expect(sim.shake, lessThan(12));
+      advance(sim, 0.6);
+      expect(sim.shake, 0);
+    });
+
+    test('集结提示按波次倒计时淡出', () {
+      final sim = makeSim()..start();
+      expect(sim.announcing, isTrue);
+      expect(sim.waveBreakRatio, greaterThan(0));
+      advance(sim, 1.6);
+      expect(sim.waveBreakRatio, lessThanOrEqualTo(0));
+    });
+  });
 }

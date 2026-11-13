@@ -3,7 +3,9 @@ import 'dart:ui' show Color;
 
 import '../utils/constants.dart';
 import 'battle_config.dart';
+import 'combat_math.dart';
 import 'entities.dart';
+import 'wave_director.dart';
 import 'wave_plan.dart';
 
 /// 战场模拟：纯 Dart 的固定步长逻辑，不依赖 Flutter 渲染与平台能力。
@@ -16,12 +18,18 @@ class BattleSim {
     required this.difficulty,
     math.Random? random,
   }) : _random = random ?? math.Random() {
+    _waves = WaveDirector(
+      mode: mode,
+      difficulty: difficulty,
+      random: _random,
+    );
     player = PlayerSoldier(x: Field.width / 2, y: Field.playerStartY);
   }
 
   final BattleMode mode;
   final Difficulty difficulty;
   final math.Random _random;
+  late final WaveDirector _waves;
 
   late PlayerSoldier player;
 
@@ -33,9 +41,6 @@ class BattleSim {
   int maxCombo = 0;
   double comboTimer = 0;
   double shake = 0;
-
-  int wave = 0;
-  double waveBreak = 0;
 
   final List<EnemyUnit> enemies = [];
   final List<BattleBullet> playerShots = [];
@@ -49,17 +54,14 @@ class BattleSim {
   /// 待消费的播放提示，控制器取走后清空。
   final List<BattleCue> cues = [];
 
-  WavePlan? _plan;
-  List<SpawnOrder> _queue = const [];
-  int _nextSpawn = 0;
-  double _spawnBase = 0;
-  double _announceTimer = 0;
-
   bool get running => status == BattleStatus.running;
   bool get finished => status == BattleStatus.won || status == BattleStatus.lost;
 
+  int get wave => _waves.wave;
+  double get waveBreak => _waves.waveBreak;
+
   /// 战役模式的总波数，无尽模式返回 0。
-  int get waveCount => mode == BattleMode.campaign ? kCampaignWaves : 0;
+  int get waveCount => _waves.waveCount;
 
   bool get bossActive => enemies.any((enemy) => enemy.isBoss);
   EnemyUnit? get boss {
@@ -70,19 +72,17 @@ class BattleSim {
   }
 
   /// 尚未清完的敌军数量（含还没进场的）。
-  int get remainingEnemies => enemies.length + (_queue.length - _nextSpawn);
+  int get remainingEnemies => enemies.length + _waves.pendingSpawns;
 
-  bool get bossWarning => _plan?.boss == true && waveBreak > 0;
+  bool get bossWarning => _waves.bossWarning;
 
-  bool get announcing => _announceTimer > 0;
+  bool get announcing => _waves.announcing;
 
   /// 波次开始时的大字提示。
-  String get announcement {
-    final plan = _plan;
-    if (plan == null) return '';
-    if (plan.boss) return '警告 · 敌军头目接近';
-    return '第 $wave 波 · 敌军逼近';
-  }
+  String get announcement => _waves.announcement;
+
+  /// 集结提示的淡出进度，渲染层直接按它计算透明度。
+  double get waveBreakRatio => _waves.announcementProgress;
 
   /// 战况条的一行短语，波次由独立的标签展示。
   String get brief {
@@ -90,9 +90,7 @@ class BattleSim {
     if (status == BattleStatus.lost) return '阵地失守';
     if (status == BattleStatus.paused) return '已暂停';
     if (status == BattleStatus.ready) return '准备战斗';
-    if (waveBreak > 0) {
-      return _plan?.boss == true ? '头目正在逼近' : '敌军集结中';
-    }
+    if (waveBreak > 0) return _waves.phaseBrief;
     if (bossActive) return '头目战 · 剩余 $remainingEnemies';
     return '剩余敌军 $remainingEnemies';
   }
@@ -136,8 +134,6 @@ class BattleSim {
     maxCombo = 0;
     comboTimer = 0;
     shake = 0;
-    wave = 0;
-    waveBreak = 0;
     enemies.clear();
     playerShots.clear();
     enemyShots.clear();
@@ -147,10 +143,7 @@ class BattleSim {
     popups.clear();
     particles.clear();
     cues.clear();
-    _queue = const [];
-    _nextSpawn = 0;
-    _plan = null;
-    _announceTimer = 0;
+    _waves.reset();
     player = PlayerSoldier(x: Field.width / 2, y: Field.playerStartY);
     start();
   }
@@ -176,7 +169,7 @@ class BattleSim {
     }
 
     if (waveBreak > 0) {
-      waveBreak -= dt;
+      _waves.tick(dt);
       return;
     }
 
@@ -207,16 +200,18 @@ class BattleSim {
       particle.vy += 42 * dt;
     }
     particles.removeWhere((particle) => particle.life <= 0);
-    if (_announceTimer > 0) _announceTimer -= dt;
+    _waves.tickAnnouncement(dt);
+    if (shake > 0) shake = math.max(0, shake - dt * 22);
   }
 
   void _updatePlayer(double dt) {
-    final spec = WeaponSpec.specs[player.weapon]!;
     player.muzzle = math.max(0, player.muzzle - dt);
     if (player.weapon != WeaponKind.pistol && time >= player.weaponUntil) {
       player.weapon = WeaponKind.pistol;
+      player.weaponUntil = 0;
       _popup('弹药耗尽', player.x, player.y - 20, const Color(0xFFBFC7C9));
     }
+    final spec = player.weaponSpec;
     player.fireCooldown -= dt;
     if (player.fireCooldown <= 0) {
       _fire(spec);
@@ -259,40 +254,43 @@ class BattleSim {
   }
 
   void _beginWave(int index) {
-    wave = index;
-    _plan = mode == BattleMode.campaign
-        ? campaignWaves(difficulty)[index - 1]
-        : endlessWave(index, difficulty, random: _random);
-    _queue = List.of(_plan!.orders)
-      ..sort((a, b) => a.at.compareTo(b.at));
-    _nextSpawn = 0;
-    waveBreak = _plan!.boss ? 2.4 : 1.5;
-    _spawnBase = time + waveBreak;
-    _announceTimer = waveBreak;
-    cues.add(_plan!.boss ? BattleCue.boss : BattleCue.wave);
+    cues.add(_waves.begin(index, time));
   }
 
   void _spawnDue() {
-    final plan = _plan;
-    if (plan == null) return;
-    final elapsed = time - _spawnBase;
-    while (_nextSpawn < _queue.length && _queue[_nextSpawn].at <= elapsed) {
-      _spawn(_queue[_nextSpawn]);
-      _nextSpawn++;
+    for (final order in _waves.takeDue(time)) {
+      _spawn(order);
     }
   }
 
+  double get _enemyHpScale => difficulty.hpScale * _waves.hpMultiplier;
+
   void _spawn(SpawnOrder order) {
-    final spec = EnemySpec.specs[order.kind]!;
-    final hp = spec.hp * difficulty.hpScale * (_plan?.hpMultiplier ?? 1);
+    _addEnemy(
+      order.kind,
+      x: order.x,
+      y: Field.enemyTop,
+      holdY: order.holdY,
+    );
+  }
+
+  void _addEnemy(
+    EnemyKind kind, {
+    required double x,
+    required double y,
+    required double holdY,
+    double hpFactor = 1,
+  }) {
+    final spec = EnemySpec.specs[kind]!;
+    final hp = spec.hp * _enemyHpScale * hpFactor;
     enemies.add(
       EnemyUnit(
-        kind: order.kind,
-        x: order.x.clamp(24.0, Field.width - 24),
-        y: Field.enemyTop,
+        kind: kind,
+        x: x.clamp(24.0, Field.width - 24),
+        y: y,
         hp: hp,
         maxHp: hp,
-        holdY: order.holdY,
+        holdY: holdY,
       )..bobSeed = _random.nextDouble() * math.pi * 2,
     );
   }
@@ -485,19 +483,12 @@ class BattleSim {
         }
       case 2:
         for (var i = -1; i <= 1; i += 2) {
-          final hp = EnemySpec.specs[EnemyKind.infantry]!.hp *
-              difficulty.hpScale *
-              (_plan?.hpMultiplier ?? 1) *
-              0.8;
-          enemies.add(
-            EnemyUnit(
-              kind: EnemyKind.infantry,
-              x: enemy.x + i * 34,
-              y: enemy.y + 18,
-              hp: hp,
-              maxHp: hp,
-              holdY: 0,
-            )..bobSeed = _random.nextDouble() * math.pi * 2,
+          _addEnemy(
+            EnemyKind.infantry,
+            x: enemy.x + i * 34,
+            y: enemy.y + 18,
+            holdY: 0,
+            hpFactor: 0.8,
           );
         }
         cues.add(BattleCue.enemyShot);
@@ -516,10 +507,8 @@ class BattleSim {
 
   void _resolveContact(EnemyUnit enemy) {
     if (enemy.spawnGuard > 0 || enemy.dead) return;
-    final dx = enemy.x - player.x;
-    final dy = enemy.y - player.y;
     final limit = enemy.spec.radius + kPlayerRadius;
-    if (dx * dx + dy * dy > limit * limit) return;
+    if (!circleOverlap(enemy.x, enemy.y, player.x, player.y, limit)) return;
     _damagePlayer(enemy.spec.contactDamage * difficulty.damageScale);
     if (enemy.kind == EnemyKind.infantry) {
       enemy.hp = 0;
@@ -580,20 +569,25 @@ class BattleSim {
     if (hazard.fromPlayer) {
       for (final enemy in enemies) {
         if (enemy.dead) continue;
-        final dx = enemy.x - hazard.toX;
-        final dy = enemy.y - hazard.toY;
         final limit = hazard.radius + enemy.spec.radius;
-        if (dx * dx + dy * dy <= limit * limit) {
+        if (circleOverlap(
+          enemy.x,
+          enemy.y,
+          hazard.toX,
+          hazard.toY,
+          limit,
+        )) {
           _damageEnemy(enemy, hazard.damage);
         }
       }
-    } else {
-      final dx = player.x - hazard.toX;
-      final dy = player.y - hazard.toY;
-      if (dx * dx + dy * dy <=
-          (hazard.radius + kPlayerRadius) * (hazard.radius + kPlayerRadius)) {
-        _damagePlayer(hazard.damage);
-      }
+    } else if (circleOverlap(
+      player.x,
+      player.y,
+      hazard.toX,
+      hazard.toY,
+      hazard.radius + kPlayerRadius,
+    )) {
+      _damagePlayer(hazard.damage);
     }
   }
 
@@ -611,7 +605,7 @@ class BattleSim {
       for (final enemy in enemies) {
         if (enemy.dead) continue;
         final limit = enemy.spec.radius + bullet.radius;
-        if (!_segmentHitsCircle(
+        if (!segmentHitsCircle(
           bullet.prevX,
           bullet.prevY,
           bullet.x,
@@ -631,7 +625,7 @@ class BattleSim {
 
     for (final bullet in enemyShots) {
       final limit = kPlayerRadius + bullet.radius;
-      if (!_segmentHitsCircle(
+      if (!segmentHitsCircle(
         bullet.prevX,
         bullet.prevY,
         bullet.x,
@@ -647,35 +641,9 @@ class BattleSim {
     enemyShots.removeWhere((bullet) => bullet.damage <= 0);
   }
 
-  /// 线段与圆是否相交：用上一位置到当前位置的轨迹判定命中。
-  bool _segmentHitsCircle(
-    double x1,
-    double y1,
-    double x2,
-    double y2,
-    double cx,
-    double cy,
-    double radius,
-  ) {
-    final dx = x2 - x1;
-    final dy = y2 - y1;
-    final lengthSquared = dx * dx + dy * dy;
-    var t = 0.0;
-    if (lengthSquared > 0) {
-      t = (((cx - x1) * dx + (cy - y1) * dy) / lengthSquared).clamp(0.0, 1.0);
-    }
-    final px = x1 + dx * t;
-    final py = y1 + dy * t;
-    final offsetX = cx - px;
-    final offsetY = cy - py;
-    return offsetX * offsetX + offsetY * offsetY <= radius * radius;
-  }
-
   void _resolvePickupGrab() {
     for (final pickup in pickups.toList()) {
-      final dx = pickup.x - player.x;
-      final dy = pickup.y - player.y;
-      if (dx * dx + dy * dy > 16 * 16) continue;
+      if (!circleOverlap(pickup.x, pickup.y, player.x, player.y, 16)) continue;
       pickups.remove(pickup);
       _applyPickup(pickup);
     }
@@ -850,7 +818,7 @@ class BattleSim {
   }
 
   void _advanceWave() {
-    if (_nextSpawn < _queue.length) return;
+    if (!_waves.allSpawned) return;
     if (enemies.isNotEmpty) return;
     if (mode == BattleMode.campaign && wave >= kCampaignWaves) {
       _win();
@@ -909,20 +877,9 @@ class BattleSim {
     if (status != BattleStatus.running) return false;
     if (time < player.grenadeReadyAt) return false;
     player.grenadeReadyAt = time + kGrenadeCooldown;
-    var targetX = player.x;
-    var targetY = player.y - 110;
-    var best = double.infinity;
-    for (final enemy in enemies) {
-      if (enemy.dead) continue;
-      final dx = enemy.x - player.x;
-      final dy = enemy.y - player.y;
-      final distance = dx * dx + dy * dy;
-      if (distance < best) {
-        best = distance;
-        targetX = enemy.x;
-        targetY = enemy.y;
-      }
-    }
+    final target = nearestEnemy(enemies, player.x, player.y);
+    final targetX = target?.x ?? player.x;
+    final targetY = target?.y ?? player.y - 110;
     hazards.add(
       GrenadeHazard(
         fromX: player.x,

@@ -64,9 +64,7 @@ class BattleController extends ChangeNotifier {
     if (_pressed.contains(MoveAxis.up)) dy -= 1;
     if (_pressed.contains(MoveAxis.down)) dy += 1;
     if (dx != 0 || dy != 0) {
-      final norm = (dx != 0 && dy != 0)
-          ? 0.7071067811865476
-          : 1.0;
+      final norm = (dx != 0 && dy != 0) ? math.sqrt1_2 : 1.0;
       sim.movePlayer(
         dx * norm * kPlayerSpeed * span,
         dy * norm * kPlayerSpeed * span,

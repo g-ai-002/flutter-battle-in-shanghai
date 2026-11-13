@@ -23,6 +23,8 @@ class PlayerSoldier {
   /// 枪口闪光剩余时间，仅用于渲染。
   double muzzle = 0;
 
+  WeaponSpec get weaponSpec => WeaponSpec.specs[weapon]!;
+
   double get hpRatio => (hp / kPlayerMaxHp).clamp(0.0, 1.0);
 }
 
