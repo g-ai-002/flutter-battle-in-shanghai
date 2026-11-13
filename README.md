@@ -36,9 +36,9 @@
 
 ## 下载
 
-最新版本 v0.2.2：Tag 已推送并触发 CI 构建，测试、Android 与 Web 通过；
-构建时 `windows-flutter` runner 不在线，Windows 任务排队，runner 恢复后补发。
-Android 与 Web 产物在该 Run 的 Artifacts 中，Web 版本已部署到在线试玩地址。
+最新版本 v0.2.2：Tag 已推送并完成 CI 构建（[Run 3117](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3117)），
+测试、Android 与 Web 三项通过；构建时 `windows-flutter` runner 不在线，Windows 任务排队未执行。
+Android 与 Web 产物已在该 Run 的 Artifacts 中，Web 版本已部署到在线试玩地址。
 
 | 平台 | 产物 |
 | --- | --- |

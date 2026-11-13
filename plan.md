@@ -47,7 +47,7 @@
 
 ### v0.2.2 (PATCH) — 2026-11-14
 
-- **状态**: ⏳ 构建中（`windows-flutter` runner 不在线，Windows 产物待 runner 恢复后补发）。
+- **状态**: ⏳ 构建完成（[Run 3117](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3117)：测试、Android、Web 三项通过，APK 与 Web ZIP 已上传）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 性能与流畅度专项优化，不改变玩法、数值、操作手感与画面观感。
 - **类型**: 性能优化（与 0.2.1 的重构版本相互独立）
 - **任务**:
