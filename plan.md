@@ -48,7 +48,7 @@
 
 ### v0.3.0 (MINOR) — 2026-11-14
 
-- **状态**: ⏳ 构建完成（[Run 3126](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3126)：测试、Android、Web 三项通过，APK 与 Web ZIP 已上传，Web 已发布到 `tea-pages/v0.3.0`）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
+- **状态**: ⏳ 构建完成（[Run 3129](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3129)：测试、Android、Web 三项通过，APK 与 Web ZIP 已上传，Web 已发布到 `tea-pages/v0.3.0`）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 把单张战场扩展成三处可选择的阵地，每处有自己的街景、景物与五波阵型，
   通关解锁下一处，让战役从「一张图重复打」变成有推进感的关卡序列。
 - **类型**: 新功能（向下兼容，玩法规则、数值与手感在 0.2.x 基础上扩展）
