@@ -12,13 +12,13 @@ import '../utils/constants.dart';
 /// 所有函数都在「战场逻辑坐标」下作画（0..300 × 0..400），由调用方先统一
 /// 缩放，因此同一套画法在手机、桌面与 Web 上比例完全一致。
 
-const Color _roadTop = Color(0xFF241D17);
-const Color _roadBottom = Color(0xFF0E0B09);
-const Color _roof = Color(0xFF2A221B);
-const Color _roofEdge = Color(0xFF3A2F25);
+const Color _roadTop = Color(0xFF31261D);
+const Color _roadBottom = Color(0xFF191310);
+const Color _roof = Color(0xFF352B21);
+const Color _roofEdge = Color(0xFF4B3C2D);
 const Color _window = Color(0xFFCD8C4A);
-const Color _sandbag = Color(0xFF7A6A4C);
-const Color _sandbagLight = Color(0xFF9A8862);
+const Color _sandbag = Color(0xFF8B7A57);
+const Color _sandbagLight = Color(0xFFB09C72);
 const Color _ember = Color(0xFFFFA24A);
 
 /// 背景街道：柏油路、屋顶、车道线与随滚动下移的杂物。
@@ -30,7 +30,7 @@ void paintStreet(Canvas canvas, Size size, double time) {
       ..shader = ui.Gradient.linear(
         Offset.zero,
         Offset(0, size.height),
-        const [Color(0xFF2A211A), _roadTop, _roadBottom],
+        const [Color(0xFF3B2E24), _roadTop, _roadBottom],
         const [0, 0.45, 1],
       ),
   );
@@ -71,7 +71,7 @@ void paintStreet(Canvas canvas, Size size, double time) {
   }
 
   // 人行道边线与排水沟
-  final walkPaint = Paint()..color = const Color(0xFF33291F);
+  final walkPaint = Paint()..color = const Color(0xFF43362A);
   canvas.drawRect(
     Rect.fromLTWH(roofWidth, 0, 7, size.height),
     walkPaint,
@@ -80,7 +80,7 @@ void paintStreet(Canvas canvas, Size size, double time) {
     Rect.fromLTWH(size.width - roofWidth - 7, 0, 7, size.height),
     walkPaint,
   );
-  final curb = Paint()..color = const Color(0xFF4A3B2A);
+  final curb = Paint()..color = const Color(0xFF5E4C38);
   canvas.drawRect(
     Rect.fromLTWH(roofWidth + 7, 0, 1.6, size.height),
     curb,
@@ -94,14 +94,14 @@ void paintStreet(Canvas canvas, Size size, double time) {
   const dash = 26.0;
   const gap = 30.0;
   final dashShift = (time * 132) % (dash + gap);
-  final dashPaint = Paint()..color = const Color(0xFF8A7A5E);
+  final dashPaint = Paint()..color = const Color(0xFF9C8A6A);
   for (var y = -dash - gap + dashShift; y < size.height; y += dash + gap) {
     canvas.drawRect(
       Rect.fromLTWH(size.width / 2 - 2.4, y, 4.8, dash),
       dashPaint,
     );
   }
-  final lanePaint = Paint()..color = const Color(0xFF4D4233);
+  final lanePaint = Paint()..color = const Color(0xFF5E5140);
   for (final x in [roofWidth + 34, size.width - roofWidth - 34]) {
     for (var y = -40 + dashShift * 0.6; y < size.height; y += 70) {
       canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 22), lanePaint);
@@ -109,7 +109,7 @@ void paintStreet(Canvas canvas, Size size, double time) {
   }
 
   // 弹坑与碎石：固定伪随机，滚动时不会闪烁。
-  final rubble = Paint()..color = const Color(0xFF3B2E22);
+  final rubble = Paint()..color = const Color(0xFF4A3A2B);
   for (var i = 0; i < 14; i++) {
     final seed = i * 73.7;
     final baseY = (seed * 13) % size.height;
@@ -649,8 +649,8 @@ void paintVignette(Canvas canvas, Size size) {
       ..shader = ui.Gradient.radial(
         rect.center,
         size.longestSide * 0.72,
-        [const Color(0x00000000), const Color(0x00000000), const Color(0x99000000)],
-        const [0, 0.62, 1],
+        [const Color(0x00000000), const Color(0x00000000), const Color(0x88000000)],
+        const [0, 0.7, 1],
       ),
   );
 }

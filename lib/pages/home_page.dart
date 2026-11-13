@@ -82,7 +82,10 @@ class HomePage extends StatelessWidget {
                             )
                           else ...[
                             // 窄屏先露出入口，避免玩家为了开局先滚一大段主视觉。
-                            _Hero(compact: compact),
+                            _Hero(
+                              compact: compact,
+                              showPreview: constraints.maxHeight >= 560,
+                            ),
                             const SizedBox(height: 20),
                             _EntryGrid(entries: entries),
                             const SizedBox(height: 16),
@@ -238,9 +241,12 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({this.compact = false});
+  const _Hero({this.compact = false, this.showPreview = true});
 
   final bool compact;
+
+  /// 横屏手机高度很矮时直接省掉主视觉，优先露出开局入口。
+  final bool showPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -248,8 +254,10 @@ class _Hero extends StatelessWidget {
     final colors = theme.colorScheme;
     return Column(
       children: [
-        BattlefieldPreview(maxWidth: compact ? 150 : 300),
-        SizedBox(height: compact ? 12 : 18),
+        if (showPreview) ...[
+          BattlefieldPreview(maxWidth: compact ? 150 : 300),
+          SizedBox(height: compact ? 12 : 18),
+        ],
         Text(
           '血战上海滩',
           textAlign: TextAlign.center,

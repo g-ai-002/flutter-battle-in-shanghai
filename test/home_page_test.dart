@@ -1,4 +1,5 @@
 import 'package:battle_in_shanghai/pages/home_page.dart';
+import 'package:battle_in_shanghai/pages/widgets/battlefield_stage.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/app_theme.dart';
@@ -81,6 +82,21 @@ void main() {
     await tester.tap(find.byIcon(Icons.light_mode_outlined));
     await tester.pump();
     expect(settings.darkMode, isFalse);
+  });
+
+  testWidgets('横屏矮屏隐藏主视觉，入口仍在首屏', (tester) async {
+    tester.view.physicalSize = const Size(568, 320);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    expect(find.byType(BattlefieldPreview), findsNothing);
+    expect(find.text('战役模式'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('战役模式')).dy, lessThan(320));
   });
 
   testWidgets('窄屏下模式入口单列显示', (tester) async {

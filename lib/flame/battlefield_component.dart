@@ -65,6 +65,7 @@ class BattlefieldComponent extends PositionComponent {
   void _paintScene(Canvas canvas) {
     const field = Size(Field.width, Field.height);
     paintStreet(canvas, field, _clock);
+    _paintAmbientLight(canvas);
     _paintHazards(canvas);
     _paintPickups(canvas);
 
@@ -85,6 +86,21 @@ class BattlefieldComponent extends PositionComponent {
     paintVignette(canvas, field);
     final lowHp = 1 - _sim.player.hpRatio;
     if (lowHp > 0.55) paintDamageWash(canvas, field, (lowHp - 0.55) / 0.45);
+  }
+
+  /// 玩家周围的暖色环境光：夜里也能把视线收拢到守军附近。
+  void _paintAmbientLight(Canvas canvas) {
+    final center = Offset(_sim.player.x, _sim.player.y - 40);
+    canvas.drawCircle(
+      center,
+      138,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          center,
+          138,
+          [const Color(0x1FFFD9A0), const Color(0x00FFD9A0)],
+        ),
+    );
   }
 
   void _paintHazards(Canvas canvas) {
@@ -147,8 +163,8 @@ class BattlefieldComponent extends PositionComponent {
           canvas,
           Offset(enemy.x, enemy.y),
           radius: enemy.spec.radius,
-          uniform: const Color(0xFF4A4438),
-          helmet: const Color(0xFF33302A),
+          uniform: const Color(0xFF595142),
+          helmet: const Color(0xFF403A30),
           aim: math.pi / 2,
           walk: enemy.timer * 7 + enemy.bobSeed,
           flash: flash,
@@ -159,8 +175,8 @@ class BattlefieldComponent extends PositionComponent {
           canvas,
           Offset(enemy.x, enemy.y),
           radius: enemy.spec.radius,
-          uniform: const Color(0xFF3F3B33),
-          helmet: const Color(0xFF2B2925),
+          uniform: const Color(0xFF4C473C),
+          helmet: const Color(0xFF363229),
           accent: const Color(0xFF7A2A20),
           aim: math.atan2(
             _sim.player.y - enemy.y,
@@ -175,8 +191,8 @@ class BattlefieldComponent extends PositionComponent {
           canvas,
           Offset(enemy.x, enemy.y),
           radius: enemy.spec.radius,
-          uniform: const Color(0xFF4F4834),
-          helmet: const Color(0xFF3A3428),
+          uniform: const Color(0xFF5C543D),
+          helmet: const Color(0xFF453E30),
           accent: const Color(0xFF9C5A2A),
           aim: math.atan2(
             _sim.player.y - enemy.y,
