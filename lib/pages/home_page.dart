@@ -43,6 +43,7 @@ class HomePage extends StatelessWidget {
               // 宽屏改为「左侧主视觉 + 右侧入口」，一屏放下全部入口。
               final wide =
                   constraints.maxWidth >= 980 && constraints.maxHeight >= 620;
+              final compact = constraints.maxWidth < 700;
               final horizontal = constraints.maxWidth >= 900 ? 40.0 : 20.0;
               final maxContent = wide ? 1180.0 : 760.0;
               return SingleChildScrollView(
@@ -80,12 +81,13 @@ class HomePage extends StatelessWidget {
                               ],
                             )
                           else ...[
-                            const _Hero(),
-                            const SizedBox(height: 26),
-                            _Loadout(settings: settings),
-                            const SizedBox(height: 16),
+                            // 窄屏先露出入口，避免玩家为了开局先滚一大段主视觉。
+                            _Hero(compact: compact),
+                            const SizedBox(height: 20),
                             _EntryGrid(entries: entries),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 16),
+                            _Loadout(settings: settings),
+                            const SizedBox(height: 14),
                             _StatsLine(records: settings.records),
                           ],
                           const SizedBox(height: 16),
@@ -236,7 +238,9 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero();
+  const _Hero({this.compact = false});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -244,18 +248,18 @@ class _Hero extends StatelessWidget {
     final colors = theme.colorScheme;
     return Column(
       children: [
-        const BattlefieldPreview(),
-        const SizedBox(height: 18),
+        BattlefieldPreview(maxWidth: compact ? 150 : 300),
+        SizedBox(height: compact ? 12 : 18),
         Text(
           '血战上海滩',
           textAlign: TextAlign.center,
           style: theme.textTheme.headlineMedium?.copyWith(
-            fontSize: 32,
-            letterSpacing: 9,
+            fontSize: compact ? 25 : 32,
+            letterSpacing: compact ? 6 : 9,
             color: colors.onSurface,
           ),
         ),
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 7 : 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -273,7 +277,7 @@ class _Hero extends StatelessWidget {
             _OrnamentLine(color: colors.outline),
           ],
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: compact ? 8 : 12),
         Text(
           '一条街，一座城；弹药有限，退路为零。',
           textAlign: TextAlign.center,

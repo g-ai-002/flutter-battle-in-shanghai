@@ -90,6 +90,12 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
         if (_pausedByLifecycle) {
           _pausedByLifecycle = false;
           _game.wake();
+          // 回到前台补一次暂停菜单，避免玩家还没准备好就被敌军包围。
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _controller.status == BattleStatus.paused) {
+              unawaited(_openPause());
+            }
+          });
         }
       case AppLifecycleState.detached:
         break;
@@ -168,7 +174,9 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
       case PauseAction.restart:
         _restart();
       case PauseAction.exit:
-        _recordRun(_controller.sim.result);
+        final sim = _controller.sim;
+        // 刚开局就撤退不必污染战绩。
+        if (sim.score > 0 || sim.kills > 0) _recordRun(sim.result);
         _exit();
     }
   }

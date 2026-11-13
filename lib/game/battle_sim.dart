@@ -84,19 +84,6 @@ class BattleSim {
     return '第 $wave 波 · 敌军逼近';
   }
 
-  /// 顶部信息条的一句话战况。
-  String get statusText {
-    if (status == BattleStatus.won) return '阵地守住了 · 上海未陷落';
-    if (status == BattleStatus.lost) return '阵地失守 · 整装再战';
-    if (status == BattleStatus.paused) return '已暂停';
-    if (status == BattleStatus.ready) return '准备战斗';
-    if (waveBreak > 0) {
-      return _plan?.boss == true ? '敌军头目正在逼近' : '第 $wave 波 · 敌军集结中';
-    }
-    if (bossActive) return '第 $wave 波 · 头目战 · 剩余 $remainingEnemies';
-    return '第 $wave 波 · 剩余 $remainingEnemies';
-  }
-
   /// 战况条的一行短语，波次由独立的标签展示。
   String get brief {
     if (status == BattleStatus.won) return '阵地守住了';
@@ -319,11 +306,11 @@ class BattleSim {
         case EnemyKind.infantry:
           _marchDown(enemy, dt, sway: 15, swaySpeed: 2.6);
         case EnemyKind.rifleman:
-          _holdAndAttack(enemy, dt, interval: 1.9);
+          _holdAndAttack(enemy, dt, interval: 1.5);
         case EnemyKind.grenadier:
-          _holdAndAttack(enemy, dt, interval: 3.1);
+          _holdAndAttack(enemy, dt, interval: 2.4);
         case EnemyKind.armoredCar:
-          _holdAndAttack(enemy, dt, interval: 2.6, strafe: 46, strafeSpeed: 0.7);
+          _holdAndAttack(enemy, dt, interval: 2.2, strafe: 46, strafeSpeed: 0.7);
         case EnemyKind.boss:
           _updateBoss(enemy, dt);
       }
@@ -379,7 +366,7 @@ class BattleSim {
           player.x,
           player.y,
           speed: 152,
-          damage: 8 * scale,
+          damage: 11 * scale,
           radius: 3,
           spread: 0.04,
           color: const Color(0xFFFF8A5B),
@@ -391,9 +378,9 @@ class BattleSim {
             fromY: enemy.y - 6,
             toX: player.x,
             toY: player.y,
-            duration: 1.35,
-            damage: 18 * scale,
-            radius: 40,
+            duration: 1.2,
+            damage: 22 * scale,
+            radius: 44,
             fromPlayer: false,
           ),
         );
@@ -405,7 +392,7 @@ class BattleSim {
             player.x,
             player.y,
             speed: 170,
-            damage: 9 * scale,
+            damage: 11 * scale,
             radius: 3.4,
             spread: 0.10 * i,
             color: const Color(0xFFFFB066),
@@ -459,7 +446,7 @@ class BattleSim {
     enemy.x = 150 + math.sin(enemy.timer * 0.55) * 74;
     enemy.attackTimer -= dt;
     if (enemy.attackTimer > 0) return;
-    enemy.attackTimer = 2.35;
+    enemy.attackTimer = 2.1;
     _enemyAttack(enemy);
     enemy.pattern = (enemy.pattern + 1) % 4;
   }
@@ -475,7 +462,7 @@ class BattleSim {
               y: enemy.y + 12,
               vx: math.cos(angle) * 128,
               vy: math.sin(angle) * 128,
-              damage: 9 * damageScale,
+              damage: 10 * damageScale,
               radius: 3.6,
               fromPlayer: false,
               color: const Color(0xFFFF9A56),
@@ -490,7 +477,7 @@ class BattleSim {
             player.x,
             player.y,
             speed: 176,
-            damage: 10 * damageScale,
+            damage: 12 * damageScale,
             radius: 3.6,
             spread: 0.075 * i,
             color: const Color(0xFFFF7043),
@@ -520,7 +507,7 @@ class BattleSim {
           player.x,
           player.y,
           speed: 138,
-          damage: 20 * damageScale,
+          damage: 22 * damageScale,
           radius: 6,
           color: const Color(0xFFFF5A3C),
         );

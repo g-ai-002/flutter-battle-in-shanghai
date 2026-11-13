@@ -71,13 +71,15 @@ class BattlefieldStage extends StatelessWidget {
 
 /// 战场的静态缩略图：首页主视觉用，不需要启动 Flame。
 class BattlefieldPreview extends StatelessWidget {
-  const BattlefieldPreview({super.key});
+  const BattlefieldPreview({super.key, this.maxWidth = 320});
+
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth.clamp(0.0, 320.0);
+        final width = constraints.maxWidth.clamp(0.0, maxWidth);
         return Center(
           child: SizedBox(
             width: width,

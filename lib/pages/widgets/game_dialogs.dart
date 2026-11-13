@@ -4,6 +4,7 @@ import '../../game/battle_config.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/constants.dart';
+import '../../utils/formatters.dart';
 
 /// 终局结算：得分、击杀、波次与最高分对比。
 Future<void> showBattleResultDialog(
@@ -49,7 +50,7 @@ Future<void> showBattleResultDialog(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${result.score}',
+                formatScore(result.score),
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: appGold,
@@ -91,7 +92,7 @@ Future<void> showBattleResultDialog(
           ),
           const SizedBox(height: 4),
           Text(
-            '最高分 $bestScore',
+            '最高分 ${formatScore(bestScore)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: colors.onSurfaceVariant,
             ),

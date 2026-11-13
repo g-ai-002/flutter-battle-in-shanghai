@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../game/battle_config.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/formatters.dart';
 import 'battle_hud.dart';
 import 'status_chip.dart';
 
@@ -148,7 +149,7 @@ class ScoreCard extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              formatBattleScore(sim.score),
+              formatScore(sim.score),
               style: theme.textTheme.titleSmall?.copyWith(
                 fontSize: compact ? 14 : 16,
                 fontWeight: FontWeight.w700,
@@ -247,15 +248,4 @@ class BattleStatusBar extends StatelessWidget {
       ],
     );
   }
-}
-
-/// 千分位得分。
-String formatBattleScore(int value) {
-  final digits = value.abs().toString();
-  final buffer = StringBuffer();
-  for (var i = 0; i < digits.length; i++) {
-    if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(',');
-    buffer.write(digits[i]);
-  }
-  return value < 0 ? '-$buffer' : buffer.toString();
 }

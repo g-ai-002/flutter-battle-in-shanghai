@@ -135,7 +135,7 @@ class EnemySpec {
   static const Map<EnemyKind, EnemySpec> specs = {
     EnemyKind.infantry: EnemySpec(
       hp: 34,
-      speed: 26,
+      speed: 28,
       radius: 9,
       score: 100,
       contactDamage: 14,
