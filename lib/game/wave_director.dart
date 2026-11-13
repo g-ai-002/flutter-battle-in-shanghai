@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'battle_config.dart';
 import 'battle_scenes.dart';
+import 'campaign_waves.dart';
 import 'wave_plan.dart';
 
 /// 波次调度：选波、排队刷怪、集结倒计时与播报文案都在这里，

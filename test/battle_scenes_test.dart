@@ -6,7 +6,7 @@ import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/battle_sim.dart';
-import 'package:battle_in_shanghai/game/wave_plan.dart';
+import 'package:battle_in_shanghai/game/campaign_waves.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/scene_palette.dart';

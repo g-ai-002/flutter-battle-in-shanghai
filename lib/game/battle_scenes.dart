@@ -50,6 +50,8 @@ enum BattleScene {
   BattleScene? get next =>
       index + 1 < values.length ? values[index + 1] : null;
 
+  BattleScene? get previous => index > 0 ? values[index - 1] : null;
+
   static BattleScene byName(String? name) => values.firstWhere(
     (scene) => scene.name == name,
     orElse: () => BattleScene.zhabei,

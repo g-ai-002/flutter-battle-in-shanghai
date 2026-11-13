@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/game/battle_scenes.dart';
+import 'package:battle_in_shanghai/game/campaign_waves.dart';
 import 'package:battle_in_shanghai/game/wave_plan.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
 import 'package:flutter_test/flutter_test.dart';

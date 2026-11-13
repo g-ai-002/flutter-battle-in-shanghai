@@ -6,6 +6,7 @@ import '../game/battle_config.dart';
 import '../game/battle_scenes.dart';
 import '../game/battle_sim.dart';
 import '../game/logic_rate.dart';
+import '../game/scene_progress.dart';
 import '../models/records.dart';
 import '../services/music_service.dart';
 import '../services/sound_service.dart';
@@ -33,10 +34,10 @@ class SettingsProvider extends ChangeNotifier {
 
   Set<BattleScene> get clearedScenes => _storage.clearedScenes;
 
-  /// 第一处阵地默认开放，其余需要先通关上一处。
-  bool isSceneUnlocked(BattleScene scene) =>
-      scene.index == 0 ||
-      clearedScenes.contains(BattleScene.values[scene.index - 1]);
+  /// 阵地通关进度：解锁与首次通关奖励都由它推导。
+  SceneProgress get sceneProgress => SceneProgress(cleared: clearedScenes);
+
+  bool isSceneUnlocked(BattleScene scene) => sceneProgress.isUnlocked(scene);
 
   Future<void> markSceneCleared(BattleScene scene) =>
       _update(() => _storage.markSceneCleared(scene));

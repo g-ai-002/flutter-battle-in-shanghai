@@ -33,7 +33,8 @@ class ScenePicker extends StatelessWidget {
 
   void _select(BuildContext context, BattleScene scene) {
     if (!settings.isSceneUnlocked(scene)) {
-      final previous = BattleScene.values[scene.index - 1];
+      // 未解锁的阵地一定不是第一处，提示只差上一处的名字。
+      final previous = scene.previous!;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('先通关「${previous.label}」，才能进入${scene.label}'),

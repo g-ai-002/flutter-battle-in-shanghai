@@ -147,10 +147,8 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     unawaited(settings.recordRun(result));
     // 战役通关解锁下一处阵地；首次通关才在结算里提示。
     if (result.won && widget.mode == BattleMode.campaign) {
-      final next = widget.scene.next;
-      if (next != null && !settings.clearedScenes.contains(widget.scene)) {
-        _unlockedScene = next.label;
-      }
+      _unlockedScene =
+          settings.sceneProgress.firstClearReward(widget.scene)?.label;
       unawaited(settings.markSceneCleared(widget.scene));
     }
     LogService.info(
