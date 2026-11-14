@@ -209,22 +209,36 @@ class BattleCombatPainter {
       case EnemyKind.raider:
       case EnemyKind.shield:
         final look = enemyLooks[enemy.kind]!;
-        paintSoldier(
+        final aim = look.aimAtPlayer
+            ? math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x)
+            : math.pi / 2;
+        final walk = enemy.timer * look.walk + enemy.bobSeed;
+        // 整块剪影贴缓存位图，枪与白闪逐帧补画；缓存不可用时回退到直接绘制。
+        if (!cache.drawSoldier(
           canvas,
           Offset(enemy.x, enemy.y),
+          look: look,
           radius: enemy.spec.radius,
-          uniform: look.uniform,
-          helmet: look.helmet,
-          accent: look.accent,
-          aim: look.aimAtPlayer
-              ? math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x)
-              : math.pi / 2,
-          walk: enemy.timer * look.walk + enemy.bobSeed,
-          flash: flash,
+          walk: walk,
+          aim: aim,
           hostile: true,
-          shield: look.shield,
-          blade: look.blade,
-        );
+          flash: flash,
+        )) {
+          paintSoldier(
+            canvas,
+            Offset(enemy.x, enemy.y),
+            radius: enemy.spec.radius,
+            uniform: look.uniform,
+            helmet: look.helmet,
+            accent: look.accent,
+            aim: aim,
+            walk: walk,
+            flash: flash,
+            hostile: true,
+            shield: look.shield,
+            blade: look.blade,
+          );
+        }
       case EnemyKind.armoredCar:
         final center = Offset(enemy.x, enemy.y);
         // 车体贴预渲染位图，车灯与白闪仍然逐帧绘制。
@@ -319,14 +333,23 @@ class BattleCombatPainter {
       canvas.restore();
     }
     if (!blinking) {
-      paintSoldier(
+      if (!cache.drawSoldier(
         canvas,
         center,
+        look: playerLook,
         radius: kPlayerRadius,
-        uniform: const Color(0xFF6F7F5E),
-        helmet: const Color(0xFF4A5540),
-        accent: const Color(0xFFC2452F),
-      );
+        walk: 0,
+        aim: -math.pi / 2,
+      )) {
+        paintSoldier(
+          canvas,
+          center,
+          radius: kPlayerRadius,
+          uniform: playerLook.uniform,
+          helmet: playerLook.helmet,
+          accent: playerLook.accent,
+        );
+      }
     }
     if (player.muzzle > 0) {
       paintMuzzle(
@@ -374,12 +397,6 @@ class BattleCombatPainter {
       final progress = effect.progress;
       switch (effect.kind) {
         case EffectKind.explosion:
-          paintExplosion(
-            canvas,
-            Offset(effect.x, effect.y),
-            effect.radius,
-            progress,
-          );
         case EffectKind.boom:
         case EffectKind.bossDown:
           paintExplosion(

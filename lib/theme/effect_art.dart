@@ -37,6 +37,29 @@ void prewarmExplosionPaints() {
   }
 }
 
+/// 爆炸光环与放射碎屑的颜色：按透明度档位缓存，稳态帧不再逐帧新建 Color。
+final List<Color> _explosionRing = List.generate(
+  kExplosionAlphaSteps + 1,
+  (step) => Color.fromRGBO(255, 217, 160, step / kExplosionAlphaSteps * 0.35),
+);
+final List<Color> _explosionRay = List.generate(
+  kExplosionAlphaSteps + 1,
+  (step) => Color.fromRGBO(255, 196, 107, step / kExplosionAlphaSteps * 0.7),
+);
+
+/// 八条放射碎屑的单位半径路径：整场只建一次，按火球半径缩放画布。
+final Path _explosionRays = () {
+  final path = Path();
+  for (var i = 0; i < 8; i++) {
+    final angle = i * math.pi / 4;
+    final outer = i.isEven ? 1.4 : 1.2;
+    path
+      ..moveTo(math.cos(angle) * 0.35, math.sin(angle) * 0.35)
+      ..lineTo(math.cos(angle) * outer, math.sin(angle) * outer);
+  }
+  return path;
+}();
+
 /// 爆炸：扩散光环 + 火球 + 放射碎屑。
 void paintExplosion(
   Canvas canvas,
@@ -47,7 +70,8 @@ void paintExplosion(
   final ease = 1 - math.pow(1 - progress, 2.4).toDouble();
   final alpha = (1 - progress).clamp(0.0, 1.0);
   final r = radius * (0.35 + ease * 0.95);
-  final core = _explosionCore((alpha * kExplosionAlphaSteps).round());
+  final step = (alpha * kExplosionAlphaSteps).round();
+  final core = _explosionCore(step);
   canvas.save();
   canvas.translate(center.dx, center.dy);
   canvas.scale(r);
@@ -58,22 +82,15 @@ void paintExplosion(
   canvas.drawCircle(
     Offset.zero,
     r * (0.9 + progress * 0.4),
-    strokePaint(const Color(0xFFFFD9A0).withValues(alpha: alpha * 0.35), 1.6),
+    strokePaint(_explosionRing[step], 1.6),
   );
-  final ray = strokePaint(
-    const Color(0xFFFFC46B).withValues(alpha: alpha * 0.7),
-    1.4,
-  )..strokeCap = StrokeCap.round;
-  for (var i = 0; i < 8; i++) {
-    final angle = i * math.pi / 4 + progress * 0.6;
-    final inner = r * 0.35;
-    final outer = r * (1.05 + (i.isEven ? 0.35 : 0.15));
-    canvas.drawLine(
-      Offset(math.cos(angle) * inner, math.sin(angle) * inner),
-      Offset(math.cos(angle) * outer, math.sin(angle) * outer),
-      ray,
-    );
-  }
+  // 八条碎屑合为一条路径并整体旋转，单次爆炸省下七条绘制指令。
+  canvas.rotate(progress * 0.6);
+  canvas.scale(r);
+  canvas.drawPath(
+    _explosionRays,
+    strokePaint(_explosionRay[step], 1.4 / r)..strokeCap = StrokeCap.round,
+  );
   canvas.restore();
 }
 

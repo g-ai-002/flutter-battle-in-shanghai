@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../game/battle_config.dart';
 import '../game/battle_scenes.dart';
 import '../theme/battle_painting.dart';
 import '../theme/scene_palette.dart';
@@ -39,11 +40,22 @@ class SceneCache {
   ui.Image? _armoredCar;
   ui.Image? _boss;
 
+  /// 士兵精灵：外观、半径与步伐帧相同的单位共用一张剪影。
+  ///
+  /// 键的最后一位区分上下半身，枪械在两次贴图之间绘制。
+  final Map<(int, int, int, int, int, bool, bool, bool, bool), ui.Image>
+  _soldiers = {};
+
+  /// 士兵的步伐帧数：16 帧足够顺滑，单帧腿部误差不到半像素。
+  static const int soldierWalkFrames = 16;
+
   final Paint _imagePaint = Paint()..filterQuality = FilterQuality.low;
 
   bool _ready = false;
   bool _unavailable = false;
+  bool _soldiersOff = false;
   int _layerBuilds = 0;
+  int _soldierBuilds = 0;
 
   bool get ready => _ready;
   bool get unavailable => _unavailable;
@@ -51,6 +63,10 @@ class SceneCache {
   /// 预渲染过的位图层数，测试用来确认稳态帧不再重复录制。
   @visibleForTesting
   int get layerBuilds => _layerBuilds;
+
+  /// 已录制的士兵精灵张数，测试用来确认稳态帧不再重复录制。
+  @visibleForTesting
+  int get soldierBuilds => _soldierBuilds;
 
   /// 全部预渲染位图的张数：七张整层位图、五档工事磨损图与两张重装单位精灵。
   static int get layerCount =>
@@ -120,16 +136,28 @@ class SceneCache {
       }
       // 重装单位的车体整局不变，只有车灯、警示灯与受击白闪逐帧变化。
       _armoredCar = _record(kArmoredCarArtBounds.size, _zoom, (canvas) {
-        canvas.translate(
-          -kArmoredCarArtBounds.left,
-          -kArmoredCarArtBounds.top,
-        );
+        canvas.translate(-kArmoredCarArtBounds.left, -kArmoredCarArtBounds.top);
         paintArmoredCarBody(canvas, Offset.zero, radius: kArmoredCarArtRadius);
       });
       _boss = _record(kBossArtBounds.size, _zoom, (canvas) {
         canvas.translate(-kBossArtBounds.left, -kBossArtBounds.top);
         paintBossBody(canvas, Offset.zero, radius: kBossArtRadius);
       });
+      // 每个兵种先录一帧，之后按出现到的步伐帧逐张补齐，首次出场不卡顿。
+      for (final entry in enemyLooks.entries) {
+        final look = entry.value;
+        final radius = EnemySpec.specs[entry.key]!.radius;
+        _soldierImage(look, radius, 0, hostile: true);
+        _soldierImage(
+          look,
+          radius,
+          soldierWalkFrames,
+          hostile: true,
+          over: true,
+        );
+      }
+      _soldierImage(playerLook, kPlayerRadius, 0);
+      _soldierImage(playerLook, kPlayerRadius, soldierWalkFrames, over: true);
       _ready = true;
     } catch (_) {
       _unavailable = true;
@@ -216,10 +244,123 @@ class SceneCache {
   void drawVignette(Canvas canvas) =>
       _drawLayer(canvas, _Layer.vignette, Offset.zero & fieldSize);
 
+  /// 士兵剪影：下半身、枪械与上半身按层叠顺序绘制，两张精灵夹住枪。
+  ///
+  /// 返回 false 表示缓存不可用，调用方回退到 [paintSoldier] 直接绘制。
+  bool drawSoldier(
+    Canvas canvas,
+    Offset center, {
+    required SoldierLook look,
+    required double radius,
+    required double walk,
+    required double aim,
+    bool hostile = false,
+    double flash = 0,
+  }) {
+    if (!_ready || _soldiersOff) return false;
+    final under = _soldierImage(
+      look,
+      radius,
+      _walkFrame(walk),
+      hostile: hostile,
+    );
+    final over = _soldierImage(
+      look,
+      radius,
+      soldierWalkFrames,
+      hostile: hostile,
+      over: true,
+    );
+    if (under == null || over == null) return false;
+    final s = radius / kSoldierArtRadius;
+    _blit(canvas, under, center, s, kSoldierUnderBounds);
+    paintSoldierGun(canvas, center, radius: radius, aim: aim);
+    _blit(canvas, over, center, s, kSoldierOverBounds);
+    paintSoldierFlash(canvas, center, radius: radius, flash: flash);
+    return true;
+  }
+
+  void _blit(
+    Canvas canvas,
+    ui.Image image,
+    Offset center,
+    double scale,
+    Rect bounds,
+  ) => _draw(
+    canvas,
+    image,
+    Rect.fromLTWH(
+      center.dx + bounds.left * scale,
+      center.dy + bounds.top * scale,
+      // 用位图实际像素换算逻辑尺寸，2x 屏上贴图与录制逐像素对齐。
+      image.width / _zoom,
+      image.height / _zoom,
+    ),
+  );
+
+  int _walkFrame(double walk) {
+    final raw = (walk / (2 * math.pi) * soldierWalkFrames).round();
+    return (raw % soldierWalkFrames + soldierWalkFrames) % soldierWalkFrames;
+  }
+
+  ui.Image? _soldierImage(
+    SoldierLook look,
+    double radius,
+    int frame, {
+    bool hostile = false,
+    bool over = false,
+  }) {
+    final key = (
+      look.uniform.toARGB32(),
+      look.helmet.toARGB32(),
+      look.accent.toARGB32(),
+      (radius * 10).round(),
+      frame,
+      hostile,
+      look.shield,
+      look.blade,
+      over,
+    );
+    final cached = _soldiers[key];
+    if (cached != null) return cached;
+    if (_soldiersOff) return null;
+    final bounds = over ? kSoldierOverBounds : kSoldierUnderBounds;
+    final s = radius / kSoldierArtRadius;
+    try {
+      return _soldiers[key] = _record(
+        Size(bounds.width * s, bounds.height * s),
+        _zoom,
+        (canvas) {
+          paintSoldier(
+            canvas,
+            Offset(-bounds.left * s, -bounds.top * s),
+            radius: radius,
+            uniform: look.uniform,
+            helmet: look.helmet,
+            accent: look.accent,
+            walk: frame * 2 * math.pi / soldierWalkFrames,
+            hostile: hostile,
+            shield: look.shield,
+            blade: look.blade,
+            layer: over ? SoldierLayer.over : SoldierLayer.under,
+          );
+        },
+        layer: false,
+      );
+    } catch (_) {
+      _soldiersOff = true;
+      return null;
+    }
+  }
+
   /// 装甲车与头目的车体贴图：按基准半径缩放，返回 false 表示缓存不可用。
-  bool drawArmoredCar(Canvas canvas, Offset center, double radius) =>
-      _drawUnit(canvas, _armoredCar, center, radius / kArmoredCarArtRadius,
-          kArmoredCarArtBounds);
+  bool drawArmoredCar(Canvas canvas, Offset center, double radius) => _drawUnit(
+    canvas,
+    _armoredCar,
+    center,
+    radius / kArmoredCarArtRadius,
+    kArmoredCarArtBounds,
+  );
 
   bool drawBoss(Canvas canvas, Offset center, double radius) =>
       _drawUnit(canvas, _boss, center, radius / kBossArtRadius, kBossArtBounds);
@@ -266,14 +407,23 @@ class SceneCache {
     );
   }
 
-  ui.Image _record(Size size, double zoom, void Function(Canvas) draw) {
+  ui.Image _record(
+    Size size,
+    double zoom,
+    void Function(Canvas) draw, {
+    bool layer = true,
+  }) {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     canvas.scale(zoom);
     draw(canvas);
     final picture = recorder.endRecording();
     try {
-      _layerBuilds++;
+      if (layer) {
+        _layerBuilds++;
+      } else {
+        _soldierBuilds++;
+      }
       return picture.toImageSync(
         (size.width * zoom).ceil(),
         (size.height * zoom).ceil(),
@@ -301,5 +451,9 @@ class SceneCache {
     _armoredCar = null;
     _boss?.dispose();
     _boss = null;
+    for (final image in _soldiers.values) {
+      image.dispose();
+    }
+    _soldiers.clear();
   }
 }

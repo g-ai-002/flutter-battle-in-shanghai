@@ -27,6 +27,15 @@ class SoldierLook {
   final bool aimAtPlayer, shield, blade;
 }
 
+/// 玩家外观：与敌军同剪影，换一套军装与领巾，枪口默认朝上。
+const SoldierLook playerLook = SoldierLook(
+  Color(0xFF6F7F5E),
+  Color(0xFF4A5540),
+  Color(0xFFC2452F),
+  0,
+  aimAtPlayer: false,
+);
+
 /// 敌军士兵外观表：步兵低头推进，其余兵种把枪口转向玩家。
 const Map<EnemyKind, SoldierLook> enemyLooks = {
   EnemyKind.infantry: SoldierLook(
@@ -78,32 +87,54 @@ void paintSoldier(
   bool hostile = false,
   bool shield = false,
   bool blade = false,
+  SoldierLayer layer = SoldierLayer.all,
 }) {
   final s = radius / 9;
   canvas.save();
   canvas.translate(center.dx, center.dy);
-  // 地面阴影
-  canvas.drawOval(
-    Rect.fromCenter(center: Offset(0, 5 * s), width: 17 * s, height: 8 * s),
-    fillPaint(const Color(0x66000000)),
-  );
-  // 双腿
-  final legSwing = math.sin(walk) * 2.2 * s;
-  final legPaint = fillPaint(uniform.withValues(alpha: 0.9));
-  canvas.drawRRect(
-    RRect.fromRectAndRadius(
-      Rect.fromLTWH(-5 * s + legSwing, 2 * s, 4.2 * s, 8 * s),
-      Radius.circular(1.8 * s),
-    ),
-    legPaint,
-  );
-  canvas.drawRRect(
-    RRect.fromRectAndRadius(
-      Rect.fromLTWH(1.2 * s - legSwing, 2 * s, 4.2 * s, 8 * s),
-      Radius.circular(1.8 * s),
-    ),
-    legPaint,
-  );
+  if (layer != SoldierLayer.over) {
+    // 地面阴影
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(0, 5 * s), width: 17 * s, height: 8 * s),
+      fillPaint(const Color(0x66000000)),
+    );
+    // 双腿
+    final legSwing = math.sin(walk) * 2.2 * s;
+    final legPaint = fillPaint(uniform.withValues(alpha: 0.9));
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(-5 * s + legSwing, 2 * s, 4.2 * s, 8 * s),
+        Radius.circular(1.8 * s),
+      ),
+      legPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(1.2 * s - legSwing, 2 * s, 4.2 * s, 8 * s),
+        Radius.circular(1.8 * s),
+      ),
+      legPaint,
+    );
+    _paintSoldierUnder(canvas, s, uniform, accent);
+  }
+  if (layer == SoldierLayer.all) _paintGun(canvas, s, aim);
+  if (layer != SoldierLayer.under) {
+    _paintSoldierOver(canvas, s, helmet, hostile, shield, blade);
+  }
+  if (layer == SoldierLayer.all && flash > 0) {
+    canvas.drawCircle(
+      Offset.zero,
+      9 * s,
+      fillPaint(Colors.white.withValues(alpha: flash * 0.5)),
+    );
+  }
+  canvas.restore();
+}
+
+/// 士兵分段：下半身穿插枪械，上半身压在枪之上，缓存与直接绘制共用。
+enum SoldierLayer { all, under, over }
+
+void _paintSoldierUnder(Canvas canvas, double s, Color uniform, Color accent) {
   // 背包
   canvas.drawRRect(
     RRect.fromRectAndRadius(
@@ -122,25 +153,16 @@ void paintSoldier(
   );
   // 肩章
   canvas.drawCircle(Offset(-4.4 * s, -1.2 * s), 1.9 * s, fillPaint(accent));
-  // 步枪：朝向 aim 方向
-  final gunStart = Offset(math.cos(aim) * 3 * s, math.sin(aim) * 3 * s);
-  final gunEnd = Offset(math.cos(aim) * 15 * s, math.sin(aim) * 15 * s);
-  canvas.drawLine(
-    gunStart,
-    gunEnd,
-    strokePaint(const Color(0xFF1A1512), 2.2 * s)..strokeCap = StrokeCap.round,
-  );
-  canvas.drawLine(
-    Offset(
-      gunStart.dx + math.cos(aim + 1.2) * 3,
-      gunStart.dy + math.sin(aim + 1.2) * 3,
-    ),
-    Offset(
-      gunStart.dx + math.cos(aim - 1.4) * 2,
-      gunStart.dy + math.sin(aim - 1.4) * 3,
-    ),
-    strokePaint(const Color(0xFF1A1512), 1.6 * s),
-  );
+}
+
+void _paintSoldierOver(
+  Canvas canvas,
+  double s,
+  Color helmet,
+  bool hostile,
+  bool shield,
+  bool blade,
+) {
   // 钢盔
   canvas.drawCircle(Offset(0, -5.2 * s), 4.6 * s, fillPaint(helmet));
   canvas.drawArc(
@@ -182,14 +204,59 @@ void paintSoldier(
       );
     }
   }
-  if (flash > 0) {
-    canvas.drawCircle(
-      Offset.zero,
-      9 * s,
-      fillPaint(Colors.white.withValues(alpha: flash * 0.5)),
-    );
-  }
+}
+
+/// 士兵精灵的外接范围与基准半径：下半身与上半身分开录制，枪夹在中间。
+const double kSoldierArtRadius = 9;
+const Rect kSoldierUnderBounds = Rect.fromLTRB(-9, -5, 9, 11);
+const Rect kSoldierOverBounds = Rect.fromLTRB(-9, -11.5, 10.5, 14);
+
+/// 步枪与背带：单独绘制，精灵缓存才能在枪口方向变化时继续复用。
+void paintSoldierGun(
+  Canvas canvas,
+  Offset center, {
+  required double radius,
+  double aim = -math.pi / 2,
+}) {
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
+  _paintGun(canvas, radius / 9, aim);
   canvas.restore();
+}
+
+void _paintGun(Canvas canvas, double s, double aim) {
+  final gunStart = Offset(math.cos(aim) * 3 * s, math.sin(aim) * 3 * s);
+  canvas.drawLine(
+    gunStart,
+    Offset(math.cos(aim) * 15 * s, math.sin(aim) * 15 * s),
+    strokePaint(const Color(0xFF1A1512), 2.2 * s)..strokeCap = StrokeCap.round,
+  );
+  canvas.drawLine(
+    Offset(
+      gunStart.dx + math.cos(aim + 1.2) * 3,
+      gunStart.dy + math.sin(aim + 1.2) * 3,
+    ),
+    Offset(
+      gunStart.dx + math.cos(aim - 1.4) * 2,
+      gunStart.dy + math.sin(aim - 1.4) * 3,
+    ),
+    strokePaint(const Color(0xFF1A1512), 1.6 * s),
+  );
+}
+
+/// 受击白闪：铺在整个士兵之上，精灵缓存外单独绘制。
+void paintSoldierFlash(
+  Canvas canvas,
+  Offset center, {
+  required double radius,
+  double flash = 0,
+}) {
+  if (flash <= 0) return;
+  canvas.drawCircle(
+    center,
+    radius,
+    fillPaint(Colors.white.withValues(alpha: flash * 0.5)),
+  );
 }
 
 /// 装甲车精灵的外接范围与基准半径：位图按这个矩形录制，绘制时按半径缩放。

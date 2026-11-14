@@ -289,7 +289,8 @@ void main() {
         ),
       );
       final (maxDiff, differing) = _compare(direct, normalized);
-      expect(maxDiff, lessThanOrEqualTo(3), reason: 'progress $progress');
+      // 放射碎屑合并为一条路径后走另一条光栅化分支，边缘抗锯齿覆盖略有差别。
+      expect(maxDiff, lessThanOrEqualTo(5), reason: 'progress $progress');
       expect(differing, lessThan(400), reason: 'progress $progress');
     }
   });
@@ -373,8 +374,8 @@ void main() {
     }
     canvas.calls = 0;
     painter.paint(canvas, 2);
-    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时约 260 条。
-    expect(canvas.calls, lessThan(320));
+    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时约 165 条。
+    expect(canvas.calls, lessThan(180));
     painter.dispose();
   });
 }
