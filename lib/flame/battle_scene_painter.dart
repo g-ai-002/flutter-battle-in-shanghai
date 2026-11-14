@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../game/battle_sim.dart';
@@ -29,8 +31,18 @@ class BattleScenePainter {
 
   static const Size _field = Size(Field.width, Field.height);
 
-  /// 在第一帧之前预生成静态图层，避免把位图创建放进绘制回调。
-  void prepare() => _cache.ensure();
+  /// 在第一帧之前预生成静态图层与渐变，避免把位图与 shader 创建放进战斗帧。
+  void prepare() {
+    _cache.ensure();
+    prewarmExplosionPaints();
+    // 低血量警示的十档渐变也提前建好，残血时不会突然卡一帧。
+    final recorder = ui.PictureRecorder();
+    final probe = Canvas(recorder);
+    for (var step = 1; step <= 10; step++) {
+      paintDamageWash(probe, _field, step / 10);
+    }
+    recorder.endRecording().dispose();
+  }
 
   void paint(Canvas canvas, double clock) {
     _cache.ensure();

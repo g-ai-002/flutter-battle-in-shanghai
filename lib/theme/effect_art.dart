@@ -8,6 +8,35 @@ import 'paint_kit.dart';
 
 /// 战斗特效与可拾取物：爆炸、枪口火光、补给箱、工事与空袭飞机。
 
+/// 爆炸火球的透明度档数：整场战斗只有这么多支火球画笔。
+const int kExplosionAlphaSteps = 20;
+
+/// 火球核心的径向渐变：半径归一化为 1，绘制时按实际半径缩放画布。
+///
+/// 渐变半径若跟着火球半径走，一场爆炸的三十来帧就会建三十来支 shader；
+/// 归一化后同一透明度只对应一支画笔，预热量也固定成二十一支。
+Paint _explosionCore(int alphaStep) {
+  final alpha = alphaStep / kExplosionAlphaSteps;
+  return radialPaint(
+    0x10000 + alphaStep,
+    1,
+    [
+      Color.fromRGBO(255, 226, 168, alpha * 0.95),
+      Color.fromRGBO(255, 138, 61, alpha * 0.7),
+      Color.fromRGBO(194, 69, 47, alpha * 0.25),
+      const Color(0x00C2452F),
+    ],
+    const [0, 0.35, 0.72, 1],
+  );
+}
+
+/// 开局预热全部爆炸渐变，战斗中不再新建原生 shader。
+void prewarmExplosionPaints() {
+  for (var step = 0; step <= kExplosionAlphaSteps; step++) {
+    _explosionCore(step);
+  }
+}
+
 /// 爆炸：扩散光环 + 火球 + 放射碎屑。
 void paintExplosion(
   Canvas canvas,
@@ -18,25 +47,14 @@ void paintExplosion(
   final ease = 1 - math.pow(1 - progress, 2.4).toDouble();
   final alpha = (1 - progress).clamp(0.0, 1.0);
   final r = radius * (0.35 + ease * 0.95);
-  // 半径与透明度量化后复用画笔：一场爆炸的 30 来帧只建一次 shader。
-  final alphaStep = (alpha * 20).round();
-  final alphaValue = alphaStep / 20;
-  final radiusStep = (r * 2).round();
-  final radiusValue = radiusStep / 2;
-  final core = radialPaint(
-    0x10000 + radiusStep * 32 + alphaStep,
-    radiusValue,
-    [
-      Color.fromRGBO(255, 226, 168, alphaValue * 0.95),
-      Color.fromRGBO(255, 138, 61, alphaValue * 0.7),
-      Color.fromRGBO(194, 69, 47, alphaValue * 0.25),
-      const Color(0x00C2452F),
-    ],
-    const [0, 0.35, 0.72, 1],
-  );
+  final core = _explosionCore((alpha * kExplosionAlphaSteps).round());
   canvas.save();
   canvas.translate(center.dx, center.dy);
-  canvas.drawCircle(Offset.zero, radiusValue, core);
+  canvas.scale(r);
+  canvas.drawCircle(Offset.zero, 1, core);
+  canvas.restore();
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
   canvas.drawCircle(
     Offset.zero,
     r * (0.9 + progress * 0.4),
@@ -59,27 +77,33 @@ void paintExplosion(
   canvas.restore();
 }
 
-/// 枪口火光：短促的星形。
-void paintMuzzle(Canvas canvas, Offset center, double radius, double alpha) {
+/// 单位半径的星形火光路径：每发子弹都要画，路径只建一次。
+final Path _muzzleStar = () {
   final path = Path();
   for (var i = 0; i < 8; i++) {
     final angle = i * math.pi / 4;
-    final r = i.isEven ? radius : radius * 0.42;
-    final point = Offset(
-      center.dx + math.cos(angle) * r,
-      center.dy + math.sin(angle) * r,
-    );
+    final r = i.isEven ? 1.0 : 0.42;
+    final point = Offset(math.cos(angle) * r, math.sin(angle) * r);
     if (i == 0) {
       path.moveTo(point.dx, point.dy);
     } else {
       path.lineTo(point.dx, point.dy);
     }
   }
-  path.close();
+  return path..close();
+}();
+
+/// 枪口火光：短促的星形。路径按单位半径缓存，缩放画布即可套用任意大小。
+void paintMuzzle(Canvas canvas, Offset center, double radius, double alpha) {
+  if (radius <= 0 || alpha <= 0) return;
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
+  canvas.scale(radius);
   canvas.drawPath(
-    path,
+    _muzzleStar,
     fillPaint(const Color(0xFFFFE1A1).withValues(alpha: alpha)),
   );
+  canvas.restore();
 }
 
 /// 补给箱：木箱 + 内部图标。
