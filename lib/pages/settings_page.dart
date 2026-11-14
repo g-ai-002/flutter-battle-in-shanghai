@@ -122,7 +122,7 @@ class SettingsPage extends StatelessWidget {
             icon: Icons.receipt_long_outlined,
             children: [
               Text(
-                logPath.isEmpty ? 'Web 端日志仅保留在当前页面内存中，刷新后清空。' : logPath,
+                logPath.isEmpty ? 'Web 端日志输出到浏览器控制台，刷新后清空。' : logPath,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
