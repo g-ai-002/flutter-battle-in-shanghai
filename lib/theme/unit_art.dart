@@ -11,6 +11,7 @@ import 'paint_kit.dart';
 
 /// 士兵外观：配色、步伐与手里的克制装备。
 class SoldierLook {
+  /// 依次为军装、钢盔、领巾配色与步伐频率。
   const SoldierLook(
     this.uniform,
     this.helmet,

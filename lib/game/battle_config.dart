@@ -116,6 +116,7 @@ enum EnemyKind {
 }
 
 class EnemySpec {
+  /// 前五个位置参数依次为生命、速度、半径、分数与接触伤害。
   const EnemySpec(
     this.hp,
     this.speed,
