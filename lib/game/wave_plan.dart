@@ -131,6 +131,15 @@ WavePlan endlessWave(int index, Difficulty difficulty, {math.Random? random}) {
       holdY: hold(95, 150),
     );
   }
+  // 刀锋兵从第六波起加入冲锋队列，盾牌兵更晚出现，负责顶住正面火力。
+  final raiders = index < 5 ? 0 : math.min(index - 4, 4);
+  for (var i = 0; i < raiders; i++) {
+    builder.add(EnemyKind.raider, 2.2 + i * 0.55, 46 + rng.nextDouble() * 208);
+  }
+  final shields = index < 7 ? 0 : math.min((index - 5) ~/ 2, 2);
+  for (var i = 0; i < shields; i++) {
+    builder.add(EnemyKind.shield, 3.6 + i * 1.6, 110 + i * 80);
+  }
   if (index >= 4) {
     final cars = 1 + (index - 4) ~/ 3;
     for (var i = 0; i < math.min(cars, 3); i++) {

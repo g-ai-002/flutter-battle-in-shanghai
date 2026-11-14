@@ -65,7 +65,7 @@ class WaveDirector {
 
   String get announcement {
     if (plan == null) return '';
-    if (boss) return '警告 · 敌军头目接近';
+    if (boss) return '警告 · ${scene.bossName} 接近';
     if (waveName.isEmpty) return '第 $wave 波 · 敌军逼近';
     return '第 $wave 波 · $waveName';
   }

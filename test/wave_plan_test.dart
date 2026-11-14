@@ -41,6 +41,8 @@ void main() {
         for (final order in wave.orders) {
           switch (order.kind) {
             case EnemyKind.infantry:
+            case EnemyKind.raider:
+            case EnemyKind.shield:
               expect(order.holdY, 0);
             case EnemyKind.rifleman:
             case EnemyKind.grenadier:

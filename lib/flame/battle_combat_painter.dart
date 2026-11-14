@@ -204,16 +204,33 @@ class BattleCombatPainter {
     final flash = enemy.hitFlash.clamp(0.0, 1.0);
     switch (enemy.kind) {
       case EnemyKind.infantry:
+      case EnemyKind.raider:
+      case EnemyKind.shield:
+        final kind = enemy.kind;
         paintSoldier(
           canvas,
           Offset(enemy.x, enemy.y),
           radius: enemy.spec.radius,
-          uniform: const Color(0xFF595142),
-          helmet: const Color(0xFF403A30),
-          aim: math.pi / 2,
-          walk: enemy.timer * 7 + enemy.bobSeed,
+          uniform: kind == EnemyKind.raider
+              ? const Color(0xFF54412F)
+              : kind == EnemyKind.shield
+              ? const Color(0xFF4E5341)
+              : const Color(0xFF595142),
+          helmet: kind == EnemyKind.raider
+              ? const Color(0xFF3A2C20)
+              : const Color(0xFF403A30),
+          accent: kind == EnemyKind.raider
+              ? const Color(0xFFC2452F)
+              : const Color(0xFF9C5A2A),
+          aim: kind == EnemyKind.infantry
+              ? math.pi / 2
+              : math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
+          walk:
+              enemy.timer * (kind == EnemyKind.raider ? 9 : 7) + enemy.bobSeed,
           flash: flash,
           hostile: true,
+          shield: kind == EnemyKind.shield,
+          blade: kind == EnemyKind.raider,
         );
       case EnemyKind.rifleman:
         paintSoldier(

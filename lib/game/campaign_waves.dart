@@ -26,16 +26,10 @@ List<WavePlan> sceneWaves(
 
 /// 闸北：窄巷正面推进，两翼从街口包抄。
 List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
-  WavePlan wave(int index, {String name = '', bool boss = false}) => WavePlan(
-    index: index,
-    name: name,
-    boss: boss,
-    hpMultiplier: hp,
-    orders: builder.flush(),
-  );
+  final book = _WaveBook(builder, hp);
 
   builder.line(EnemyKind.infantry, 6, 0.2, 0.55);
-  final waves = <WavePlan>[wave(1, name: '前哨试探')];
+  final waves = <WavePlan>[book.next(1, name: '前哨试探')];
 
   builder.line(EnemyKind.infantry, 3, 0.2, 0.5, fromX: 40, toX: 56);
   builder.line(EnemyKind.infantry, 3, 0.45, 0.5, fromX: 244, toX: 260);
@@ -49,9 +43,12 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 80,
     holdMax: 140,
   );
-  waves.add(wave(2, name: '两翼夹击'));
+  builder.add(EnemyKind.raider, 3.2, 54);
+  builder.add(EnemyKind.raider, 3.6, 246);
+  waves.add(book.next(2, name: '两翼夹击'));
 
   builder.line(EnemyKind.infantry, 5, 0.6, 0.5, fromX: 60, toX: 240);
+  builder.add(EnemyKind.shield, 0.8, 150);
   builder.line(
     EnemyKind.rifleman,
     4,
@@ -72,7 +69,7 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 100,
     holdMax: 150,
   );
-  waves.add(wave(3, name: '火力压制'));
+  waves.add(book.next(3, name: '火力压制'));
 
   builder.line(EnemyKind.infantry, 6, 0.2, 0.42);
   builder.add(EnemyKind.armoredCar, 1.0, 92, holdY: 82);
@@ -97,30 +94,26 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 108,
     holdMax: 150,
   );
-  waves.add(wave(4, name: '装甲突袭'));
+  waves.add(book.next(4, name: '装甲突袭'));
 
   builder.add(EnemyKind.infantry, 0.2, 60);
   builder.add(EnemyKind.rifleman, 0.6, 240, holdY: 96);
   builder.add(EnemyKind.infantry, 1.0, 240);
   builder.add(EnemyKind.grenadier, 1.4, 190, holdY: 118);
+  builder.add(EnemyKind.raider, 0.8, 96);
+  builder.add(EnemyKind.raider, 1.0, 204);
   builder.add(EnemyKind.boss, 2.6, 150, holdY: 78);
-  waves.add(wave(5, name: '头目决战', boss: true));
+  waves.add(book.next(5, name: '头目决战', boss: true));
   return waves;
 }
 
 /// 外滩：江岸开阔，步兵散得更开，远处楼顶的枪手先发制人。
 List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
-  WavePlan wave(int index, {String name = '', bool boss = false}) => WavePlan(
-    index: index,
-    name: name,
-    boss: boss,
-    hpMultiplier: hp,
-    orders: builder.flush(),
-  );
+  final book = _WaveBook(builder, hp);
 
   builder.line(EnemyKind.infantry, 7, 0.2, 0.45, fromX: 36, toX: 264);
   builder.add(EnemyKind.rifleman, 3.0, 150, holdY: 112);
-  final waves = <WavePlan>[wave(1, name: '江岸登陆')];
+  final waves = <WavePlan>[book.next(1, name: '江岸登陆')];
 
   builder.line(
     EnemyKind.rifleman,
@@ -143,7 +136,7 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMax: 150,
   );
   builder.line(EnemyKind.infantry, 4, 0.6, 0.6, fromX: 70, toX: 230);
-  waves.add(wave(2, name: '楼顶狙击'));
+  waves.add(book.next(2, name: '楼顶狙击'));
 
   builder.line(EnemyKind.rifleman, 4, 0.2, 0.65, holdMin: 70, holdMax: 124);
   builder.line(
@@ -157,7 +150,8 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMax: 146,
   );
   builder.line(EnemyKind.infantry, 5, 0.4, 0.5, fromX: 60, toX: 240);
-  waves.add(wave(3, name: '交叉火力'));
+  builder.add(EnemyKind.shield, 1.0, 150);
+  waves.add(book.next(3, name: '交叉火力'));
 
   builder.add(EnemyKind.armoredCar, 0.8, 84, holdY: 84);
   builder.add(EnemyKind.armoredCar, 2.6, 216, holdY: 84);
@@ -172,32 +166,31 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMin: 78,
     holdMax: 116,
   );
-  waves.add(wave(4, name: '铁甲巡江'));
+  waves.add(book.next(4, name: '铁甲巡江'));
 
   builder.add(EnemyKind.infantry, 0.2, 56);
   builder.add(EnemyKind.infantry, 0.7, 244);
   builder.add(EnemyKind.rifleman, 1.0, 240, holdY: 92);
   builder.add(EnemyKind.grenadier, 1.6, 176, holdY: 116);
+  builder.add(EnemyKind.shield, 1.2, 120);
+  builder.add(EnemyKind.raider, 0.6, 60);
+  builder.add(EnemyKind.raider, 0.9, 240);
   builder.add(EnemyKind.boss, 2.8, 150, holdY: 76);
-  waves.add(wave(5, name: '租界头目', boss: true));
+  waves.add(book.next(5, name: '租界头目', boss: true));
   return waves;
 }
 
 /// 四行仓库：两路纵队贴着砖墙压上，正面几乎没有空隙。
 List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
-  WavePlan wave(int index, {String name = '', bool boss = false}) => WavePlan(
-    index: index,
-    name: name,
-    boss: boss,
-    hpMultiplier: hp,
-    orders: builder.flush(),
-  );
+  final book = _WaveBook(builder, hp);
 
   builder.line(EnemyKind.infantry, 4, 0.2, 0.45, fromX: 58, toX: 100);
   builder.line(EnemyKind.infantry, 4, 0.3, 0.45, fromX: 200, toX: 242);
-  final waves = <WavePlan>[wave(1, name: '仓库外围')];
+  final waves = <WavePlan>[book.next(1, name: '仓库外围')];
 
   builder.line(EnemyKind.infantry, 6, 0.2, 0.42, fromX: 56, toX: 244);
+  builder.add(EnemyKind.raider, 1.6, 58);
+  builder.add(EnemyKind.raider, 1.9, 242);
   builder.line(
     EnemyKind.grenadier,
     3,
@@ -218,7 +211,7 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 78,
     holdMax: 120,
   );
-  waves.add(wave(2, name: '断墙死守'));
+  waves.add(book.next(2, name: '断墙死守'));
 
   builder.line(EnemyKind.infantry, 7, 0.2, 0.34, fromX: 50, toX: 250);
   builder.line(
@@ -232,12 +225,13 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMax: 126,
   );
   builder.add(EnemyKind.grenadier, 2.8, 150, holdY: 132);
-  waves.add(wave(3, name: '火线压制'));
+  waves.add(book.next(3, name: '火线压制'));
 
   builder.add(EnemyKind.armoredCar, 0.6, 80, holdY: 82);
   builder.add(EnemyKind.armoredCar, 1.8, 150, holdY: 78);
   builder.add(EnemyKind.armoredCar, 3.0, 220, holdY: 82);
   builder.line(EnemyKind.infantry, 5, 0.2, 0.45);
+  builder.add(EnemyKind.shield, 1.2, 150);
   builder.line(
     EnemyKind.grenadier,
     2,
@@ -248,14 +242,33 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 104,
     holdMax: 148,
   );
-  waves.add(wave(4, name: '坦克围城'));
+  waves.add(book.next(4, name: '坦克围城'));
 
   builder.add(EnemyKind.infantry, 0.2, 52);
   builder.add(EnemyKind.infantry, 0.5, 248);
   builder.add(EnemyKind.infantry, 0.8, 90);
   builder.add(EnemyKind.infantry, 1.1, 210);
   builder.add(EnemyKind.rifleman, 1.4, 244, holdY: 90);
+  builder.add(EnemyKind.raider, 0.7, 56);
+  builder.add(EnemyKind.raider, 0.9, 244);
+  builder.add(EnemyKind.shield, 2.0, 150);
   builder.add(EnemyKind.boss, 2.4, 150, holdY: 74);
-  waves.add(wave(5, name: '最终突围', boss: true));
+  waves.add(book.next(5, name: '最终突围', boss: true));
   return waves;
+}
+
+/// 把当前排好的刷怪点封成一波，三个阵地共用同一套写法。
+class _WaveBook {
+  const _WaveBook(this.builder, this.hp);
+
+  final WaveBuilder builder;
+  final double hp;
+
+  WavePlan next(int index, {String name = '', bool boss = false}) => WavePlan(
+    index: index,
+    name: name,
+    boss: boss,
+    hpMultiplier: hp,
+    orders: builder.flush(),
+  );
 }

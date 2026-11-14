@@ -115,7 +115,7 @@ class BattleSim {
     if (status == BattleStatus.paused) return '已暂停';
     if (status == BattleStatus.ready) return '准备战斗';
     if (waveBreak > 0) return _waves.phaseBrief;
-    if (bossActive) return '头目战 · 剩余 $remainingEnemies';
+    if (bossActive) return '${scene.bossName} · 剩余 $remainingEnemies';
     if (waveName.isEmpty) return '剩余敌军 $remainingEnemies';
     return '$waveName · 剩余敌军 $remainingEnemies';
   }
@@ -316,6 +316,8 @@ class BattleSim {
       enemy.spawnGuard = math.max(0, enemy.spawnGuard - dt);
       switch (enemy.kind) {
         case EnemyKind.infantry:
+        case EnemyKind.raider:
+        case EnemyKind.shield:
           _advanceInfantry(enemy, dt);
         case EnemyKind.rifleman:
           _holdAndAttack(enemy, dt, interval: 1.5);
@@ -337,7 +339,8 @@ class BattleSim {
     }
   }
 
-  /// 步兵推进：撞上工事就停下挖沙袋，把工事当成一道门槛。
+  /// 步行单位推进：撞上工事就停下挖沙袋，把工事当成一道门槛。
+  /// 刀锋兵速度更快，盾牌兵则慢得多，但他们的行为都走同一条推进逻辑。
   void _advanceInfantry(EnemyUnit enemy, double dt) {
     final cover = _covers.blockingAt(enemy.x, enemy.y);
     if (cover == null) {
@@ -397,6 +400,8 @@ class BattleSim {
     final scale = difficulty.damageScale;
     switch (enemy.kind) {
       case EnemyKind.infantry:
+      case EnemyKind.raider:
+      case EnemyKind.shield:
         return;
       case EnemyKind.rifleman:
         _shootAt(
@@ -490,15 +495,17 @@ class BattleSim {
   void _bossAttack(EnemyUnit enemy, double damageScale) {
     switch (enemy.pattern) {
       case 0:
-        for (var i = 0; i < 9; i++) {
-          final angle = math.pi / 2 - 0.55 + 1.1 * i / 8;
+        final plan = _bossFan[scene]!;
+        final start = math.pi / 2 - plan.spread / 2;
+        for (var i = 0; i < plan.count; i++) {
+          final angle = start + plan.spread * i / (plan.count - 1);
           enemyShots.add(
             BattleBullet(
               x: enemy.x,
               y: enemy.y + 12,
-              vx: math.cos(angle) * 128,
-              vy: math.sin(angle) * 128,
-              damage: 10 * damageScale,
+              vx: math.cos(angle) * plan.speed,
+              vy: math.sin(angle) * plan.speed,
+              damage: plan.damage * damageScale,
               radius: 3.6,
               fromPlayer: false,
               color: const Color(0xFFFF9A56),
@@ -507,39 +514,65 @@ class BattleSim {
         }
         _feedback.cue(BattleCue.enemyShot);
       case 1:
-        for (var i = -1; i <= 1; i++) {
+        final plan = _bossAimed[scene]!;
+        for (var i = 0; i < plan.count; i++) {
           _shootAt(
             enemy,
             player.x,
             player.y,
-            speed: 176,
-            damage: 12 * damageScale,
+            speed: plan.speed,
+            damage: plan.damage * damageScale,
             radius: 3.6,
-            spread: 0.075 * i,
-            color: const Color(0xFFFF7043),
+            spread: (i - (plan.count - 1) / 2) * plan.spread,
+            color: const Color(0xFFFF9A56),
           );
         }
       case 2:
-        for (var i = -1; i <= 1; i += 2) {
+        // 增援随阵地变化：闸北步兵、外滩枪手、仓库刀锋兵。
+        final summon = switch (scene) {
+          BattleScene.zhabei => (EnemyKind.infantry, 2, 0.0),
+          BattleScene.bund => (EnemyKind.rifleman, 1, 118.0),
+          BattleScene.warehouse => (EnemyKind.raider, 2, 0.0),
+        };
+        for (var i = 0; i < summon.$2; i++) {
           _addEnemy(
-            EnemyKind.infantry,
-            x: enemy.x + i * 34,
+            summon.$1,
+            x: enemy.x + (i - (summon.$2 - 1) / 2) * 34,
             y: enemy.y + 18,
-            holdY: 0,
+            holdY: summon.$3,
             hpFactor: 0.8,
           );
         }
         _feedback.cue(BattleCue.enemyShot);
-      case 3:
-        _shootAt(
-          enemy,
-          player.x,
-          player.y,
-          speed: 138,
-          damage: 22 * damageScale,
-          radius: 6,
-          color: const Color(0xFFFF5A3C),
-        );
+      default:
+        if (scene == BattleScene.zhabei) {
+          _shootAt(
+            enemy,
+            player.x,
+            player.y,
+            speed: 138,
+            damage: 22 * damageScale,
+            radius: 6,
+            color: const Color(0xFFFF5A3C),
+          );
+        } else {
+          // 外滩与仓库用炮击代替重炮直射，落点有预警圈。
+          final heavy = scene == BattleScene.warehouse;
+          hazards.add(
+            GrenadeHazard(
+              fromX: enemy.x,
+              fromY: 40,
+              toX: player.x,
+              toY: player.y,
+              duration: 1.3,
+              damage: (heavy ? 24 : 16) * damageScale,
+              radius: heavy ? 46 : 40,
+              fromPlayer: false,
+              kind: HazardKind.bomb,
+            ),
+          );
+          _feedback.cue(BattleCue.enemyShot);
+        }
     }
   }
 
@@ -548,7 +581,8 @@ class BattleSim {
     final limit = enemy.spec.radius + kPlayerRadius;
     if (!circleOverlap(enemy.x, enemy.y, player.x, player.y, limit)) return;
     _damagePlayer(enemy.spec.contactDamage * difficulty.damageScale);
-    if (enemy.kind == EnemyKind.infantry) {
+    // 步兵与刀锋兵抵近即扑上来，盾牌兵举盾顶住，不会自毁。
+    if (enemy.kind == EnemyKind.infantry || enemy.kind == EnemyKind.raider) {
       enemy.hp = 0;
       enemy.dead = true;
     }
@@ -615,7 +649,7 @@ class BattleSim {
         if (enemy.dead) continue;
         final limit = hazard.radius + enemy.spec.radius;
         if (circleOverlap(enemy.x, enemy.y, hazard.toX, hazard.toY, limit)) {
-          _damageEnemy(enemy, hazard.damage);
+          _damageEnemy(enemy, hazard.damage, blast: true);
         }
       }
     } else if (circleOverlap(
@@ -763,8 +797,12 @@ class BattleSim {
     }
   }
 
-  void _damageEnemy(EnemyUnit enemy, double damage) {
+  /// [blast] 为 true 表示爆炸伤害：盾牌兵只能挡住正面子弹，挡不住手雷与空袭。
+  void _damageEnemy(EnemyUnit enemy, double damage, {bool blast = false}) {
     if (enemy.dead) return;
+    if (enemy.kind == EnemyKind.shield && !blast) {
+      damage *= 1 - kShieldBlock;
+    }
     enemy.hp -= damage;
     enemy.hitFlash = 1;
     _feedback.effect(
@@ -977,6 +1015,20 @@ class BattleSim {
     seconds: time,
   );
 }
+
+typedef _BossShot = ({int count, double spread, double speed, double damage});
+
+/// 头目弹幕参数：越靠后的阵地张角更宽、节奏更紧。
+const Map<BattleScene, _BossShot> _bossFan = {
+  BattleScene.zhabei: (count: 9, spread: 1.1, speed: 128, damage: 10),
+  BattleScene.bund: (count: 7, spread: 1.0, speed: 136, damage: 8),
+  BattleScene.warehouse: (count: 9, spread: 1.4, speed: 118, damage: 8),
+};
+const Map<BattleScene, _BossShot> _bossAimed = {
+  BattleScene.zhabei: (count: 3, spread: 0.075, speed: 176, damage: 12),
+  BattleScene.bund: (count: 3, spread: 0.1, speed: 196, damage: 9),
+  BattleScene.warehouse: (count: 3, spread: 0.09, speed: 210, damage: 12),
+};
 
 /// 一局战斗的结算数据。
 class BattleResult {

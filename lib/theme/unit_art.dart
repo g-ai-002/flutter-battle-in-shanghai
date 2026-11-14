@@ -20,6 +20,8 @@ void paintSoldier(
   double walk = 0,
   double flash = 0,
   bool hostile = false,
+  bool shield = false,
+  bool blade = false,
 }) {
   final s = radius / 9;
   canvas.save();
@@ -98,6 +100,31 @@ void paintSoldier(
       Rect.fromLTWH(-1.6 * s, 0.4 * s, 3.2 * s, 1.4 * s),
       fillPaint(const Color(0xFF8E2F23)),
     );
+  }
+  // 刀锋兵的白刃：朝前下方斜举，和步枪形成区分。
+  if (blade) {
+    canvas.drawLine(
+      Offset(4.2 * s, 1.2 * s),
+      Offset(9 * s, 9.6 * s),
+      strokePaint(const Color(0xFFD7DEE2), 1.5 * s)
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+  // 盾牌兵的钢板：挡在身体正面，子弹打上去会被削掉大半。
+  if (shield) {
+    final plate = RRect.fromRectAndRadius(
+      Rect.fromLTWH(-7.4 * s, 0.2 * s, 14.8 * s, 12.4 * s),
+      Radius.circular(3.4 * s),
+    );
+    canvas.drawRRect(plate, fillPaint(const Color(0xFF6E7566)));
+    canvas.drawRRect(plate, strokePaint(const Color(0xFF9AA38E), 1.1 * s));
+    for (final x in [-4.2, 0.0, 4.2]) {
+      canvas.drawCircle(
+        Offset(x * s, 3.6 * s),
+        0.9 * s,
+        fillPaint(const Color(0xFF3C4136)),
+      );
+    }
   }
   if (flash > 0) {
     canvas.drawCircle(

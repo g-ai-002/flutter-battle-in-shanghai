@@ -50,7 +50,7 @@ void main() {
       expect(director.begin(5, 0), BattleCue.boss);
       expect(director.waveBreak, WaveDirector.bossBreak);
       expect(director.bossWarning, isTrue);
-      expect(director.announcement, '警告 · 敌军头目接近');
+      expect(director.announcement, '警告 · 九七式指挥车 接近');
       expect(director.phaseBrief, '头目正在逼近');
       expect(director.plan?.boss, isTrue);
     });

@@ -101,7 +101,9 @@ void main() {
             for (final order in wave.orders) {
               expect(order.x, inInclusiveRange(20, Field.width - 20));
               expect(order.at, greaterThanOrEqualTo(0));
-              if (order.kind == EnemyKind.infantry) {
+              if (order.kind == EnemyKind.infantry ||
+                  order.kind == EnemyKind.raider ||
+                  order.kind == EnemyKind.shield) {
                 expect(order.holdY, 0);
               } else {
                 expect(order.holdY, greaterThan(0));

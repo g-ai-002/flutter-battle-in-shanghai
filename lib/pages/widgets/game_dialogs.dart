@@ -44,7 +44,8 @@ Future<void> showBattleResultDialog(
           children: [
             Text(
               won
-                  ? '${result.scene.label}五波敌军尽数击退，街垒仍在手中。'
+                  ? '${result.scene.label}五波敌军尽数击退，'
+                        '${result.scene.bossName}被摧毁，街垒仍在手中。'
                   : '${result.scene.label}的防线被突破，整备弹药再战一场。',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: colors.onSurfaceVariant,
@@ -65,11 +66,7 @@ Future<void> showBattleResultDialog(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.flag_rounded,
-                      size: 15,
-                      color: appFlame,
-                    ),
+                    const Icon(Icons.flag_rounded, size: 15, color: appFlame),
                     const SizedBox(width: 6),
                     Text(
                       '解锁新阵地 · $unlockedScene',
@@ -135,26 +132,17 @@ Future<void> showBattleResultDialog(
               ),
             ),
             const SizedBox(height: 14),
-            StatRow(
-              label: '抵达波次',
-              value: '第 ${result.wave} 波',
-              padding: const EdgeInsets.symmetric(vertical: 3),
-            ),
-            StatRow(
-              label: '击破敌军',
-              value: '${result.kills}',
-              padding: const EdgeInsets.symmetric(vertical: 3),
-            ),
-            StatRow(
-              label: '最高连击',
-              value: '${result.maxCombo}',
-              padding: const EdgeInsets.symmetric(vertical: 3),
-            ),
-            StatRow(
-              label: '作战时长',
-              value: _duration(result.seconds),
-              padding: const EdgeInsets.symmetric(vertical: 3),
-            ),
+            for (final (label, value) in [
+              ('抵达波次', '第 ${result.wave} 波'),
+              ('击破敌军', '${result.kills}'),
+              ('最高连击', '${result.maxCombo}'),
+              ('作战时长', _duration(result.seconds)),
+            ])
+              StatRow(
+                label: label,
+                value: value,
+                padding: const EdgeInsets.symmetric(vertical: 3),
+              ),
           ],
         ),
       ),
@@ -241,8 +229,10 @@ Future<void> showRulesDialog(BuildContext context) {
               lines: [
                 '步兵径直推进，靠近街垒会造成大量伤害。',
                 '枪手与掷弹兵停下后开火，优先点掉。',
+                '刀锋兵冲锋极快，贴脸前必须点掉。',
+                '盾牌兵挡住正面子弹，用手雷或空袭破盾。',
                 '装甲车皮厚，霰弹枪与手雷更有效。',
-                '每五波出现一次头目，留意扇形弹幕。',
+                '三处阵地的头目火力各不相同，留意弹幕节奏。',
               ],
             ),
             const _RuleSection(

@@ -106,6 +106,8 @@ enum EnemyKind {
   infantry('步兵'),
   rifleman('枪手'),
   grenadier('掷弹兵'),
+  raider('刀锋兵'),
+  shield('盾牌兵'),
   armoredCar('装甲车'),
   boss('敌军头目');
 
@@ -153,6 +155,21 @@ class EnemySpec {
       radius: 10,
       score: 200,
       contactDamage: 12,
+    ),
+    EnemyKind.raider: EnemySpec(
+      hp: 26,
+      speed: 58,
+      radius: 8,
+      score: 130,
+      contactDamage: 12,
+    ),
+    EnemyKind.shield: EnemySpec(
+      hp: 90,
+      speed: 15,
+      radius: 10,
+      score: 220,
+      contactDamage: 10,
+      elite: true,
     ),
     EnemyKind.armoredCar: EnemySpec(
       hp: 320,
@@ -221,6 +238,9 @@ const double kCoverShelterReduction = 0.4;
 
 /// 步兵贴到工事后每秒造成的破坏。
 const double kCoverGnawDamage = 12;
+
+/// 盾牌兵挡下的正面子弹比例：手雷、空袭等爆炸伤害不受影响。
+const double kShieldBlock = 0.45;
 
 /// 空袭支援：一轮三枚炸弹覆盖敌军集群，落点有预警。
 const double kAirstrikeCooldown = 30;
