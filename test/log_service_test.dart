@@ -32,7 +32,6 @@ void main() {
     expect(content, contains('进入战斗'));
     expect(content, contains('[INFO]'));
     expect(LogService.logFilePath, file.path);
-    expect(LogService.getRecentLogs(10), isNotEmpty);
   });
 
   test('错误日志包含异常与堆栈', () async {
@@ -53,9 +52,5 @@ void main() {
     );
     LogService.warning('没有目录');
     expect(LogService.logFilePath, '');
-    expect(
-      LogService.getRecentLogs(10).any((line) => line.contains('没有目录')),
-      isTrue,
-    );
   });
 }

@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../game/battle_config.dart';
 import '../game/battle_scenes.dart';
-import '../utils/constants.dart';
-import 'effect_art.dart';
 import 'paint_kit.dart';
 import 'scene_palette.dart';
-import 'street_art.dart';
-import 'unit_art.dart';
-
-/// 阵地专属景物与首页缩略图：只依赖阵地与配色，不读取战斗状态。
 
 /// 阵地专属景物：闸北的断墙瓦砾、外滩的江堤栏杆、四行仓库的砖墙木箱。
 ///
@@ -117,53 +110,4 @@ void paintSceneProps(
         smear,
       );
   }
-}
-
-/// 首页战场缩略图：街道、阵地景物、两名推进中的敌军、守军与街垒。
-///
-/// 复用战斗中的同一套画法，换阵地时街景随之变化；静态内容由调用方
-/// 放进 [RepaintBoundary]，滚动页面不会反复重绘。
-void paintBattlefieldPreview(Canvas canvas, Size size, BattleScene scene) {
-  final scale = size.width / Field.width;
-  canvas.save();
-  canvas.scale(scale);
-  const field = Size(Field.width, Field.height);
-  final palette = paletteOf(scene);
-  paintStreet(canvas, field, 0, palette);
-  paintSceneProps(canvas, field, scene, palette);
-  final infantry = enemyLooks[EnemyKind.infantry]!;
-  final rifleman = enemyLooks[EnemyKind.rifleman]!;
-  paintSoldier(
-    canvas,
-    const Offset(96, 168),
-    radius: 9,
-    uniform: infantry.uniform,
-    helmet: infantry.helmet,
-    accent: infantry.accent,
-    aim: 1.5707963267948966,
-    walk: 1.2,
-    hostile: true,
-  );
-  paintSoldier(
-    canvas,
-    const Offset(206, 214),
-    radius: 9,
-    uniform: rifleman.uniform,
-    helmet: rifleman.helmet,
-    accent: rifleman.accent,
-    aim: 1.9,
-    hostile: true,
-  );
-  paintPickup(canvas, const Offset(244, 288), PickupKind.ammo, 0);
-  paintSoldier(
-    canvas,
-    const Offset(150, 330),
-    radius: 9,
-    uniform: const Color(0xFF80916A),
-    helmet: const Color(0xFF56674A),
-    accent: const Color(0xFFC2452F),
-  );
-  paintBarricade(canvas, field, 0, palette);
-  paintVignette(canvas, field);
-  canvas.restore();
 }

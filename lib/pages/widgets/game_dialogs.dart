@@ -1,9 +1,6 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../game/battle_config.dart';
-import '../../game/battle_scenes.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
@@ -202,65 +199,17 @@ Future<void> showRulesDialog(BuildContext context) {
     builder: (dialogContext) => AlertDialog(
       title: const Text('作战说明'),
       content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _RuleSection(
-              title: '操作',
-              lines: [
-                '拖动战场任意位置移动士兵，火力自动朝正前方倾泻。',
-                '桌面端可用 WASD / 方向键移动，空格投掷手雷，Q 布置工事，E 呼叫空袭。',
-                '手雷有 ${kGrenadeCooldown.round()} 秒冷却，优先炸装甲车与头目。',
-              ],
-            ),
-            _RuleSection(
-              title: '工事与空袭',
-              lines: [
-                '工事是沙袋掩体，挡得住敌军子弹，却会被步兵一点点挖开，'
-                    '${kCoverLife.round()} 秒后自然失效。',
-                '站在工事后方的掩护范围内可减伤 ${(kCoverShelterReduction * 100).round()}%，'
-                    '战况条会亮起「掩体」标记。',
-                '空袭有 ${kAirstrikeCooldown.round()} 秒冷却，自动轰炸敌军最密集处，'
-                    '落点先有预警圈。',
-              ],
-            ),
-            const _RuleSection(
-              title: '敌军',
-              lines: [
-                '步兵径直推进，靠近街垒会造成大量伤害。',
-                '枪手与掷弹兵停下后开火，优先点掉。',
-                '刀锋兵冲锋极快，贴脸前必须点掉。',
-                '盾牌兵挡住正面子弹，用手雷或空袭破盾。',
-                '装甲车皮厚，霰弹枪与手雷更有效。',
-                '三处阵地的头目火力各不相同，留意弹幕节奏。',
-              ],
-            ),
-            const _RuleSection(
-              title: '补给',
-              lines: [
-                '急救包回复 30 点生命。',
-                '弹药箱提供冲锋枪或霰弹枪，限时使用。',
-                '钢盔提供 6 秒护盾，可以硬闯弹幕。',
-              ],
-            ),
-            _RuleSection(
-              title: '阵地',
-              lines: [
-                '战役共有${BattleScene.values.length}处阵地：'
-                    '${BattleScene.values.map((scene) => scene.label).join('、')}。',
-                '通关一处阵地解锁下一处，越靠后的阵地敌军越硬。',
-                '每处阵地的街景与波次阵型都不同，首页可随时切换。',
-              ],
-            ),
-            const _RuleSection(
-              title: '计分',
-              lines: [
-                '连续击杀累积倍率，最高 3 倍。',
-                '清空一波与击破头目都有额外奖励。',
-                '战役通关需要击退当前阵地的全部五波敌军。',
-              ],
-            ),
-          ],
+        child: Text(
+          '· 拖动战场移动，火力自动朝正前方；桌面端用 WASD / 方向键，'
+          '空格手雷、Q 工事、E 空袭。\n'
+          '· 工事挡子弹、会被步兵挖开，站在后方减伤 '
+          '${(kCoverShelterReduction * 100).round()}%；'
+          '空袭轰炸敌军最密集处，落点先有预警圈。\n'
+          '· 枪手与掷弹兵停下开火，刀锋兵冲锋快，盾牌兵挡正面子弹，'
+          '装甲车皮厚，头目弹幕各不相同。\n'
+          '· 急救包回血、弹药箱提供冲锋枪或霰弹枪、钢盔提供 6 秒护盾。\n'
+          '· 三处阵地依次解锁；连击最高 3 倍，清波与击破头目都有额外奖励。',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.7),
         ),
       ),
       actions: [
@@ -271,73 +220,6 @@ Future<void> showRulesDialog(BuildContext context) {
       ],
     ),
   );
-}
-
-/// 日志查看：设置页使用，Web 端只展示内存日志。
-Future<void> showLogDialog(BuildContext context, List<String> lines) {
-  final colors = Theme.of(context).colorScheme;
-  return showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('最近日志'),
-      content: SizedBox(
-        width: 560,
-        height: math.min(380, MediaQuery.sizeOf(context).height * 0.5),
-        child: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: SingleChildScrollView(
-            child: SelectableText(
-              lines.isEmpty ? '暂无日志' : lines.join('\n'),
-              style: const TextStyle(fontSize: 10.5, height: 1.45),
-            ),
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text('关闭'),
-        ),
-      ],
-    ),
-  );
-}
-
-class _RuleSection extends StatelessWidget {
-  const _RuleSection({required this.title, required this.lines});
-
-  final String title;
-  final List<String> lines;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: theme.textTheme.titleSmall?.copyWith(color: appFlame),
-          ),
-          const SizedBox(height: 4),
-          for (final line in lines)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 3),
-              child: Text(
-                '· $line',
-                style: theme.textTheme.bodySmall?.copyWith(height: 1.5),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
 String _duration(double seconds) {

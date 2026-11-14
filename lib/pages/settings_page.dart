@@ -9,7 +9,6 @@ import '../services/log_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_info.dart';
 import '../utils/formatters.dart';
-import 'widgets/game_dialogs.dart';
 import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
 import 'widgets/stat_row.dart';
@@ -123,9 +122,7 @@ class SettingsPage extends StatelessWidget {
             icon: Icons.receipt_long_outlined,
             children: [
               Text(
-                logPath.isEmpty
-                    ? 'Web 端日志仅保留在当前页面内存中，刷新后清空。'
-                    : logPath,
+                logPath.isEmpty ? 'Web 端日志仅保留在当前页面内存中，刷新后清空。' : logPath,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
@@ -133,28 +130,14 @@ class SettingsPage extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => showLogDialog(
-                      context,
-                      LogService.getRecentLogs(300),
-                    ),
-                    icon: const Icon(Icons.subject_rounded, size: 18),
-                    label: const Text('查看日志'),
-                  ),
-                  if (logPath.isNotEmpty) ...[
-                    const SizedBox(width: 10),
-                    OutlinedButton.icon(
-                      onPressed: () =>
-                          FileSystemService.instance.openLogFolder(),
-                      icon: const Icon(Icons.folder_open_rounded, size: 18),
-                      label: const Text('打开目录'),
-                    ),
-                  ],
-                ],
-              ),
+              if (logPath.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => FileSystemService.instance.openLogFolder(),
+                  icon: const Icon(Icons.folder_open_rounded, size: 18),
+                  label: const Text('打开日志目录'),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),

@@ -1,28 +1,17 @@
 import 'package:flutter/foundation.dart';
 
-import '../utils/formatters.dart';
-
-/// Web 平台日志：只保留内存环形缓冲，不落盘。
+/// Web 平台日志：没有可写目录，直接输出到浏览器控制台。
 class LogService {
   LogService._();
-
-  static final List<String> _buffer = [];
-  static bool _initialized = false;
-
-  static const int _maxBufferLines = 2000;
 
   static Future<void> init({
     Future<Object?> Function()? logRoot,
     DateTime Function()? clock,
   }) async {
-    _initialized = true;
-    _write('INFO', '==== LogService 已初始化, Web 内存模式 ====');
+    debugPrint('[LogService] ==== LogService 已初始化, Web 控制台模式 ====');
   }
 
-  static void reset() {
-    _buffer.clear();
-    _initialized = false;
-  }
+  static void reset() {}
 
   static String get logFilePath => '';
 
@@ -35,16 +24,6 @@ class LogService {
     if (stack != null) _write('ERROR', stack.toString());
   }
 
-  static void _write(String level, String message) {
-    if (!_initialized) {
+  static void _write(String level, String message) =>
       debugPrint('[LogService] $level $message');
-    }
-    _buffer.add(formatLogLine(DateTime.now(), level, message));
-    if (_buffer.length > _maxBufferLines) _buffer.removeAt(0);
-  }
-
-  static List<String> getRecentLogs([int lines = 200]) {
-    if (_buffer.length <= lines) return List.unmodifiable(_buffer);
-    return _buffer.sublist(_buffer.length - lines);
-  }
 }

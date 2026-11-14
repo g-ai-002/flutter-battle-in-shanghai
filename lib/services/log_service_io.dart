@@ -184,12 +184,4 @@ class LogService {
       }
     } catch (_) {}
   }
-
-  /// 最近日志（内存缓冲，含尚未落盘的早期日志）。
-  static List<String> getRecentLogs([int lines = 200]) {
-    final inst = _instance;
-    final all = <String>[..._earlyBuffer, if (inst != null) ...inst._buffer];
-    if (all.length <= lines) return all;
-    return all.sublist(all.length - lines);
-  }
 }

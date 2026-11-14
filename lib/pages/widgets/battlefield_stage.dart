@@ -2,12 +2,10 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 
 import '../../flame/battle_game.dart';
-import '../../game/battle_scenes.dart';
-import '../../theme/battle_painting.dart';
 import '../../utils/battlefield_layout.dart';
 import '../../utils/constants.dart';
 
-/// 战场舞台：统一圆角、投影与 Flame 容器，战斗页与首页预览共用。
+/// 战场舞台：统一圆角、投影与 Flame 容器。
 ///
 /// 战场保持 3:4 的宽高比，按可用空间取最大尺寸。
 class BattlefieldStage extends StatelessWidget {
@@ -70,50 +68,3 @@ class BattlefieldStage extends StatelessWidget {
 }
 
 /// 战场的静态缩略图：首页主视觉用，不需要启动 Flame。
-class BattlefieldPreview extends StatelessWidget {
-  const BattlefieldPreview({
-    super.key,
-    this.maxWidth = 320,
-    this.scene = BattleScene.zhabei,
-  });
-
-  final double maxWidth;
-
-  /// 首页预览跟随当前选择的阵地，换关时街景随之变化。
-  final BattleScene scene;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth.clamp(0.0, maxWidth);
-        return Center(
-          child: SizedBox(
-            width: width,
-            height: width * Field.height / Field.width,
-            // 首页预览是静态画，单独成层后滚动页面不会反复重绘。
-            child: RepaintBoundary(
-              child: CustomPaint(painter: _PreviewPainter(scene)),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _PreviewPainter extends CustomPainter {
-  const _PreviewPainter(this.scene);
-
-  final BattleScene scene;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // 首页预览复用同一套战场画法，换阵地只换场景参数。
-    paintBattlefieldPreview(canvas, size, scene);
-  }
-
-  @override
-  bool shouldRepaint(_PreviewPainter oldDelegate) =>
-      oldDelegate.scene != scene;
-}

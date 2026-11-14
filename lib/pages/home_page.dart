@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../game/battle_config.dart';
-import '../game/battle_scenes.dart';
 import '../models/records.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
@@ -12,7 +11,6 @@ import '../utils/app_info.dart';
 import '../utils/constants.dart';
 import 'game_page.dart';
 import 'settings_page.dart';
-import 'widgets/battlefield_stage.dart';
 import 'widgets/entry_tile.dart';
 import 'widgets/game_dialogs.dart';
 import 'widgets/preference_pickers.dart';
@@ -73,9 +71,7 @@ class HomePage extends StatelessWidget {
                           if (wide)
                             Row(
                               children: [
-                                Expanded(
-                                  child: _Hero(scene: settings.scene),
-                                ),
+                                const Expanded(child: _Hero()),
                                 const SizedBox(width: 44),
                                 SizedBox(
                                   width: 500,
@@ -88,11 +84,7 @@ class HomePage extends StatelessWidget {
                             )
                           else ...[
                             // 窄屏先露出入口，避免玩家为了开局先滚一大段主视觉。
-                            _Hero(
-                              compact: compact,
-                              showPreview: constraints.maxHeight >= 560,
-                              scene: settings.scene,
-                            ),
+                            _Hero(compact: compact),
                             const SizedBox(height: 20),
                             ...side,
                           ],
@@ -141,8 +133,7 @@ class HomePage extends StatelessWidget {
         accent: colors.primary,
       ),
       title: '战役模式',
-      subtitle:
-          '${settings.scene.label} · 五波敌军 · ${settings.difficulty.label}',
+      subtitle: '${settings.scene.label} · 五波敌军 · ${settings.difficulty.label}',
       onTap: () => _start(context, BattleMode.campaign),
     ),
     EntryTile(
@@ -164,15 +155,11 @@ class HomePage extends StatelessWidget {
       onTap: () => showRulesDialog(context),
     ),
     EntryTile(
-      leading: EntryBadge(
-        icon: Icons.tune_rounded,
-        accent: colors.secondary,
-      ),
+      leading: EntryBadge(icon: Icons.tune_rounded, accent: colors.secondary),
       title: '设置',
       subtitle: '难度 · 刷新率 · 音效 · 日志',
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-      ),
+      onTap: () => Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
     ),
   ];
 }
@@ -235,9 +222,9 @@ class _TopBar extends StatelessWidget {
         ),
         IconButton(
           tooltip: '设置',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
-          ),
+          onPressed: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
           icon: const Icon(Icons.settings_outlined, size: 21),
         ),
       ],
@@ -246,17 +233,9 @@ class _TopBar extends StatelessWidget {
 }
 
 class _Hero extends StatelessWidget {
-  const _Hero({
-    this.compact = false,
-    this.showPreview = true,
-    this.scene = BattleScene.zhabei,
-  });
+  const _Hero({this.compact = false});
 
   final bool compact;
-  final BattleScene scene;
-
-  /// 横屏手机高度很矮时直接省掉主视觉，优先露出开局入口。
-  final bool showPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -264,10 +243,35 @@ class _Hero extends StatelessWidget {
     final colors = theme.colorScheme;
     return Column(
       children: [
-        if (showPreview) ...[
-          BattlefieldPreview(maxWidth: compact ? 150 : 300, scene: scene),
-          SizedBox(height: compact ? 12 : 18),
-        ],
+        // 圆形徽记代替实时缩略图：首屏更轻，也让标题成为视觉中心。
+        Container(
+          width: compact ? 92 : 118,
+          height: compact ? 92 : 118,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: colors.primary.withValues(alpha: 0.5),
+              width: 1.4,
+            ),
+            gradient: RadialGradient(
+              colors: [
+                colors.primary.withValues(alpha: 0.18),
+                Colors.transparent,
+              ],
+            ),
+          ),
+          child: Text(
+            '战',
+            style: TextStyle(
+              fontSize: compact ? 38 : 48,
+              height: 1,
+              fontWeight: FontWeight.w700,
+              color: colors.primary,
+            ),
+          ),
+        ),
+        SizedBox(height: compact ? 12 : 18),
         Text(
           '血战上海滩',
           textAlign: TextAlign.center,
@@ -377,11 +381,7 @@ class _StatsLine extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.emoji_events_outlined,
-          size: 15,
-          color: colors.primary,
-        ),
+        Icon(Icons.emoji_events_outlined, size: 15, color: colors.primary),
         const SizedBox(width: 6),
         Flexible(
           child: Text(

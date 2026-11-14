@@ -1,6 +1,5 @@
 import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/pages/home_page.dart';
-import 'package:battle_in_shanghai/pages/widgets/battlefield_stage.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/app_theme.dart';
@@ -69,9 +68,9 @@ void main() {
 
     await tester.tap(find.text('作战说明'));
     await tester.pumpAndSettle();
-    expect(find.text('操作'), findsOneWidget);
     expect(find.textContaining('WASD'), findsOneWidget);
-    expect(find.text('补给'), findsOneWidget);
+    expect(find.textContaining('急救包'), findsOneWidget);
+    expect(find.textContaining('三处阵地'), findsOneWidget);
     await tester.tap(find.text('明白了'));
     await tester.pumpAndSettle();
   });
@@ -127,7 +126,7 @@ void main() {
     expect(settings.darkMode, isFalse);
   });
 
-  testWidgets('横屏矮屏隐藏主视觉，入口仍在首屏', (tester) async {
+  testWidgets('横屏矮屏入口仍在首屏', (tester) async {
     tester.view.physicalSize = const Size(568, 320);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -137,7 +136,6 @@ void main() {
     final settings = SettingsProvider(storage);
     await tester.pumpWidget(wrap(settings));
 
-    expect(find.byType(BattlefieldPreview), findsNothing);
     expect(find.text('战役模式'), findsOneWidget);
     expect(tester.getTopLeft(find.text('战役模式')).dy, lessThan(320));
   });
