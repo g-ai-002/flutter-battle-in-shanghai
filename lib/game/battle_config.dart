@@ -116,78 +116,124 @@ enum EnemyKind {
 }
 
 class EnemySpec {
-  const EnemySpec({
-    required this.hp,
-    required this.speed,
-    required this.radius,
-    required this.score,
-    required this.contactDamage,
+  const EnemySpec(
+    this.hp,
+    this.speed,
+    this.radius,
+    this.score,
+    this.contactDamage, {
     this.elite = false,
+    this.ai = EnemyAi.advance,
+    this.frontArmor = 0,
+    this.ram = false,
+    this.fire,
   });
 
-  final double hp;
-  final double speed;
-  final double radius;
+  final double hp, speed, radius, contactDamage;
   final int score;
-  final double contactDamage;
 
   /// 精英单位会显示血条并必掉补给。
   final bool elite;
 
+  /// 推进、驻守或头目：战斗模拟按它选择行为，不再按兵种写分支。
+  final EnemyAi ai;
+
+  /// 正面子弹减伤比例（盾牌兵 0.45），爆炸伤害不受影响。
+  final double frontArmor;
+
+  /// 贴身即与玩家同归于尽（步兵与刀锋兵）。
+  final bool ram;
+
+  /// 驻守兵种的开火参数，近战单位与头目为空。
+  final EnemyFire? fire;
+
   static const Map<EnemyKind, EnemySpec> specs = {
-    EnemyKind.infantry: EnemySpec(
-      hp: 34,
-      speed: 28,
-      radius: 9,
-      score: 100,
-      contactDamage: 14,
-    ),
+    EnemyKind.infantry: EnemySpec(34, 28, 9, 100, 14, ram: true),
     EnemyKind.rifleman: EnemySpec(
-      hp: 52,
-      speed: 30,
-      radius: 9,
-      score: 150,
-      contactDamage: 10,
+      52,
+      30,
+      9,
+      150,
+      10,
+      ai: EnemyAi.hold,
+      fire: EnemyFire(1.5, 11),
     ),
     EnemyKind.grenadier: EnemySpec(
-      hp: 66,
-      speed: 24,
-      radius: 10,
-      score: 200,
-      contactDamage: 12,
+      66,
+      24,
+      10,
+      200,
+      12,
+      ai: EnemyAi.hold,
+      fire: EnemyFire(2.4, 22, fuse: 1.2, blastRadius: 44),
     ),
-    EnemyKind.raider: EnemySpec(
-      hp: 26,
-      speed: 58,
-      radius: 8,
-      score: 130,
-      contactDamage: 12,
-    ),
+    EnemyKind.raider: EnemySpec(26, 58, 8, 130, 12, ram: true),
     EnemyKind.shield: EnemySpec(
-      hp: 90,
-      speed: 15,
-      radius: 10,
-      score: 220,
-      contactDamage: 10,
+      90,
+      15,
+      10,
+      220,
+      10,
       elite: true,
+      frontArmor: kShieldBlock,
     ),
     EnemyKind.armoredCar: EnemySpec(
-      hp: 320,
-      speed: 18,
-      radius: 20,
-      score: 400,
-      contactDamage: 20,
+      320,
+      18,
+      20,
+      400,
+      20,
       elite: true,
+      ai: EnemyAi.hold,
+      fire: EnemyFire(
+        2.2,
+        11,
+        shots: 3,
+        speed: 170,
+        radius: 3.4,
+        spread: 0.10,
+        color: Color(0xFFFFB066),
+        strafe: 46,
+        strafeSpeed: 0.7,
+      ),
     ),
     EnemyKind.boss: EnemySpec(
-      hp: 900,
-      speed: 12,
-      radius: 30,
-      score: 2000,
-      contactDamage: 24,
+      900,
+      12,
+      30,
+      2000,
+      24,
       elite: true,
+      ai: EnemyAi.boss,
     ),
   };
+}
+
+/// 敌军行为：持续推进、驻守开火或头目指挥。
+enum EnemyAi { advance, hold, boss }
+
+/// 驻守兵种的开火参数：连发子弹或抛物线手雷，弹道数值全部在这张表里。
+class EnemyFire {
+  const EnemyFire(
+    this.interval,
+    this.damage, {
+    this.shots = 1,
+    this.speed = 152,
+    this.spread = 0.04,
+    this.radius = 3,
+    this.color = const Color(0xFFFF8A5B),
+    this.strafe = 22,
+    this.strafeSpeed = 0.9,
+    this.fuse = 0,
+    this.blastRadius = 0,
+  });
+
+  final double interval, damage, speed, spread, radius, strafe, strafeSpeed;
+  final double fuse, blastRadius;
+  final int shots;
+  final Color color;
+
+  bool get grenade => fuse > 0;
 }
 
 /// 补给类型。
