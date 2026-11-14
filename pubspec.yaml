@@ -1,7 +1,7 @@
 name: battle_in_shanghai
 description: 血战上海滩 - 1937 上海街巷保卫战，支持 Android、Windows 与 Web
 publish_to: 'none'
-version: 0.4.2
+version: 0.5.0
 
 environment:
   sdk: '>=3.13.7 <4.0.0'
