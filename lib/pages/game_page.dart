@@ -295,11 +295,9 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     );
   }
 
-  /// 标题卡：返回 + 模式与难度 + 生命条。
+  /// 标题卡：返回 + 模式与阵地 + 生命条。
   Widget _buildTitle() {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final compact = HudScope.compactOf(context);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -323,18 +321,6 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall,
               ),
-              if (!compact)
-                Text(
-                  widget.mode == BattleMode.campaign
-                      ? '${widget.difficulty.label} · 守住街垒 · 击退五波敌军'
-                      : '${widget.difficulty.label} · 敌军无穷 · 尽量活得更久',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 10.5,
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
               const SizedBox(height: 4),
               HpLine(sim: _controller.sim),
             ],

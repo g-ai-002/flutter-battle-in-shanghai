@@ -220,13 +220,6 @@ class _TopBar extends StatelessWidget {
             size: 21,
           ),
         ),
-        IconButton(
-          tooltip: '设置',
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute<void>(builder: (_) => const SettingsPage())),
-          icon: const Icon(Icons.settings_outlined, size: 21),
-        ),
       ],
     );
   }
@@ -282,22 +275,12 @@ class _Hero extends StatelessWidget {
           ),
         ),
         SizedBox(height: compact ? 7 : 10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _OrnamentLine(color: colors.outline),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                '一 九 三 七 · 上 海',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  letterSpacing: 2.4,
-                ),
-              ),
-            ),
-            _OrnamentLine(color: colors.outline),
-          ],
+        Text(
+          '一 九 三 七 · 上 海',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: colors.onSurfaceVariant,
+            letterSpacing: 2.4,
+          ),
         ),
         SizedBox(height: compact ? 8 : 12),
         Text(
@@ -398,13 +381,3 @@ class _StatsLine extends StatelessWidget {
   }
 }
 
-class _OrnamentLine extends StatelessWidget {
-  const _OrnamentLine({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 34, height: 1, color: color.withValues(alpha: 0.9));
-  }
-}

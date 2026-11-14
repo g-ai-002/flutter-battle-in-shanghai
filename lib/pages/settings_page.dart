@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../game/battle_config.dart';
 import '../game/battle_scenes.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_system_service.dart';
 import '../services/log_service.dart';
-import '../theme/app_theme.dart';
-import '../utils/app_info.dart';
 import '../utils/formatters.dart';
-import 'widgets/preference_pickers.dart';
 import 'widgets/section_card.dart';
 import 'widgets/stat_row.dart';
 
@@ -38,27 +34,6 @@ class SettingsPage extends StatelessWidget {
                 subtitle: '夜间作战时更省眼',
                 value: settings.darkMode,
                 onChanged: settings.setDarkMode,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SectionCard(
-            title: '战斗',
-            icon: Icons.sports_martial_arts_rounded,
-            children: [
-              ScenePicker(settings: settings),
-              const SizedBox(height: 14),
-              DifficultyPicker(settings: settings),
-              const SizedBox(height: 14),
-              LogicRatePicker(settings: settings),
-              const SizedBox(height: 10),
-              Text(
-                '逻辑刷新率决定战场模拟的步进频率，与屏幕刷新解耦；'
-                '30Hz 省电，120Hz 更顺滑，低端设备建议 60Hz。',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.5,
-                ),
               ),
             ],
           ),
@@ -140,41 +115,6 @@ class SettingsPage extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: 12),
-          SectionCard(
-            title: '关于',
-            icon: Icons.info_outline_rounded,
-            children: [
-              Text(
-                aboutLine(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '基于 Flutter + Flame 的本地单人射击游戏，不含任何联网功能。'
-                '所有音效与背景音乐均在运行时合成。',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  const Icon(Icons.timer_outlined, size: 14, color: appFlame),
-                  const SizedBox(width: 6),
-                  Text(
-                    '战场 3:4 · ${BattleScene.values.length} 处阵地 × $kCampaignWaves 波战役',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -189,36 +129,19 @@ class _SwitchRow extends StatelessWidget {
     required this.onChanged,
   });
 
-  final String title;
-  final String subtitle;
+  final String title, subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: theme.textTheme.bodyMedium),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(value: value, onChanged: onChanged),
-        ],
-      ),
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      title: Text(title),
+      subtitle: Text(subtitle),
+      value: value,
+      onChanged: onChanged,
     );
   }
 }
