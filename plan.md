@@ -49,7 +49,7 @@
 
 ### v0.3.1 (PATCH) — 2026-11-14
 
-- **状态**: 🚧 待构建（`flutter analyze` 无告警，199 项测试通过；构建与发布交给 CI）
+- **状态**: ⏳ 构建完成（[Run 3137](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3137)：测试、Android、Web 三项通过，APK 与 Web ZIP 已上传，Web 已发布到 `tea-pages/v0.3.1`）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 重构 0.3.0 的增量代码，把三处阵地的美术、波次与进度各自归位，
   玩法、数值、画面与手感保持不变。
 - **类型**: 重构优化（与 0.3.2 的性能专项相互独立）

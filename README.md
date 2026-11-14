@@ -41,20 +41,18 @@
 
 ## 下载
 
-最新版本 v0.3.1（重构优化版）：构建与发布由 CI 执行，待 `build` 工作流完成后在此补上产物链接。
+最新版本 v0.3.1（重构优化版）：[Run 3137](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3137)
+测试、Android 与 Web 三项通过，APK 与 Web ZIP 已上传，Web 已部署到在线试玩地址；
 玩法与画面与 v0.3.0 一致，重构了阵地美术、战役波次与解锁进度的代码结构。
-
-v0.3.0 产物：[Run 3129](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3129)
-测试、Android 与 Web 三项通过，APK 与 Web ZIP 已上传；构建时 `windows-flutter` runner 不在线，
-Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
+构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.1-android-aarch64.apk`（待 CI 构建） |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.3.1-windows-x86_64.zip`（待 CI 构建） |
-| Web | `flutter-battle-in-shanghai-0.3.1-web.zip`（待 CI 构建，解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.1-android-aarch64.apk`（Run 3137 Artifacts） |
+| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
+| Web | `flutter-battle-in-shanghai-0.3.1-web.zip`（Run 3137 Artifacts，解压后起静态服务器） |
 
-在线试玩（v0.3.0）：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.3.0/>
+在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.3.1/>
 
 ## 版本
 
