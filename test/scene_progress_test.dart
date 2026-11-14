@@ -39,6 +39,10 @@ void main() {
       expect(progress.firstClearReward(BattleScene.zhabei), BattleScene.bund);
       expect(
         progress.firstClearReward(BattleScene.warehouse),
+        BattleScene.suzhou,
+      );
+      expect(
+        progress.firstClearReward(BattleScene.suzhou),
         isNull,
         reason: '最后一处阵地没有下一处',
       );

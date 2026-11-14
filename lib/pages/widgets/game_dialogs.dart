@@ -208,7 +208,8 @@ Future<void> showRulesDialog(BuildContext context) {
           '· 枪手与掷弹兵停下开火，刀锋兵冲锋快，盾牌兵挡正面子弹，'
           '装甲车皮厚，头目弹幕各不相同。\n'
           '· 急救包回血、弹药箱提供冲锋枪或霰弹枪、钢盔提供 6 秒护盾。\n'
-          '· 三处阵地依次解锁；连击最高 3 倍，清波与击破头目都有额外奖励。',
+          '· 四处阵地依次解锁：闸北、外滩、四行仓库、苏州河；'
+          '连击最高 3 倍，清波与击破头目都有额外奖励。',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.7),
         ),
       ),

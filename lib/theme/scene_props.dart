@@ -109,5 +109,40 @@ void paintSceneProps(
         Rect.fromCenter(center: const Offset(150, 150), width: 86, height: 26),
         smear,
       );
+    case BattleScene.suzhou:
+      // 苏州河：河面、钢桁架与桥头系缆桩。
+      final river = Rect.fromLTWH(0, 0, size.width, 40);
+      canvas.drawRect(river, fillPaint(const Color(0xFF142426)));
+      final ripple = strokePaint(palette.beam.withValues(alpha: 0.16), 0.8);
+      for (var i = 0; i < 6; i++) {
+        final y = 6.0 + i * 6;
+        final x = (i * 43) % 74.0;
+        canvas.drawLine(Offset(x, y), Offset(x + 56, y), ripple);
+      }
+      final steel = strokePaint(const Color(0xFF46595B), 2.2);
+      final rivet = fillPaint(const Color(0xFF718587));
+      for (final left in [true, false]) {
+        for (var i = 0; i < 5; i++) {
+          final y = 54.0 + i * 72;
+          final x0 = left ? 0.0 : size.width;
+          final x1 = left ? 34.0 : size.width - 34;
+          canvas.drawLine(Offset(x0, y), Offset(x1, y + 46), steel);
+          canvas.drawLine(Offset(x0, y + 46), Offset(x1, y + 92), steel);
+          canvas.drawCircle(
+            Offset(left ? 7 : size.width - 7, y + 22),
+            1.6,
+            rivet,
+          );
+        }
+      }
+      canvas.drawLine(
+        const Offset(0, 44),
+        Offset(size.width, 44),
+        strokePaint(const Color(0xFF5C6E6F), 1.2),
+      );
+      for (final x in [40.0, 260.0]) {
+        final post = Rect.fromLTWH(x - 3, 176, 6, 12);
+        canvas.drawRect(post, fillPaint(const Color(0xFF3D4B4C)));
+      }
   }
 }

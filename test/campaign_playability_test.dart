@@ -50,7 +50,7 @@ void main() {
     expect(sim.player.hp, greaterThan(0));
   });
 
-  test('三处阵地在老兵难度下都可以打通', () {
+  test('四处阵地在老兵难度下都可以打通', () {
     for (final scene in BattleScene.values) {
       final sim = BattleSim(
         mode: BattleMode.campaign,

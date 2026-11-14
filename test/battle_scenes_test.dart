@@ -45,28 +45,27 @@ void main() {
   });
 
   group('阵地定义', () {
-    test('三处阵地按闸北、外滩、四行仓库顺序解锁', () {
+    test('四处阵地按闸北、外滩、四行仓库、苏州河顺序解锁', () {
       expect(BattleScene.values.map((scene) => scene.label), [
         '闸北',
         '外滩',
         '四行仓库',
+        '苏州河',
       ]);
       expect(BattleScene.zhabei.next, BattleScene.bund);
       expect(BattleScene.bund.next, BattleScene.warehouse);
-      expect(BattleScene.warehouse.next, isNull);
+      expect(BattleScene.warehouse.next, BattleScene.suzhou);
+      expect(BattleScene.suzhou.next, isNull);
+      expect(BattleScene.suzhou.previous, BattleScene.warehouse);
       expect(BattleScene.byName('bund'), BattleScene.bund);
       expect(BattleScene.byName('unknown'), BattleScene.zhabei);
     });
 
     test('越靠后的阵地敌军生命倍率越高', () {
-      expect(
-        BattleScene.bund.hpScale,
-        greaterThan(BattleScene.zhabei.hpScale),
-      );
-      expect(
-        BattleScene.warehouse.hpScale,
-        greaterThan(BattleScene.bund.hpScale),
-      );
+      final scales = BattleScene.values.map((scene) => scene.hpScale).toList();
+      for (var i = 1; i < scales.length; i++) {
+        expect(scales[i], greaterThan(scales[i - 1]));
+      }
     });
   });
 
@@ -83,7 +82,7 @@ void main() {
       }
     });
 
-    test('三处阵地的阵型名称互不重复', () {
+    test('四处阵地的阵型名称互不重复', () {
       final names = <String>[];
       for (final scene in BattleScene.values) {
         final waves = sceneWaves(scene, Difficulty.veteran);
@@ -112,6 +111,24 @@ void main() {
           }
         }
       }
+    });
+
+    test('苏州河是第四处阵地，铁桥头目与五波阵型齐备', () {
+      expect(BattleScene.suzhou.title, '苏州河 · 铁桥');
+      expect(BattleScene.suzhou.bossName, '九四式装甲炮艇');
+      final waves = sceneWaves(BattleScene.suzhou, Difficulty.veteran);
+      expect(waves.map((wave) => wave.name), [
+        '桥头遭遇',
+        '铁桥封锁',
+        '河面炮火',
+        '装甲登陆',
+        '桥心决战',
+      ]);
+      final kinds = waves
+          .expand((wave) => wave.orders)
+          .map((order) => order.kind)
+          .toSet();
+      expect(kinds, containsAll(EnemyKind.values));
     });
 
     test('同一阵地同一难度稳定复现', () {
@@ -158,6 +175,7 @@ void main() {
       expect(settings.isSceneUnlocked(BattleScene.zhabei), isTrue);
       expect(settings.isSceneUnlocked(BattleScene.bund), isFalse);
       expect(settings.isSceneUnlocked(BattleScene.warehouse), isFalse);
+      expect(settings.isSceneUnlocked(BattleScene.suzhou), isFalse);
 
       await settings.markSceneCleared(BattleScene.zhabei);
       expect(settings.isSceneUnlocked(BattleScene.bund), isTrue);
@@ -165,6 +183,10 @@ void main() {
 
       await settings.markSceneCleared(BattleScene.bund);
       expect(settings.isSceneUnlocked(BattleScene.warehouse), isTrue);
+      expect(settings.isSceneUnlocked(BattleScene.suzhou), isFalse);
+
+      await settings.markSceneCleared(BattleScene.warehouse);
+      expect(settings.isSceneUnlocked(BattleScene.suzhou), isTrue);
     });
 
     test('未知的阵地名称回退到闸北且不计入通关', () async {
@@ -179,12 +201,19 @@ void main() {
     });
   });
 
-  test('三处阵地的街景与景物逐像素不同', () async {
-    final zhabei = await _renderBase(BattleScene.zhabei);
-    final bund = await _renderBase(BattleScene.bund);
-    final warehouse = await _renderBase(BattleScene.warehouse);
-    expect(zhabei, isNot(equals(bund)));
-    expect(bund, isNot(equals(warehouse)));
-    expect(zhabei, isNot(equals(warehouse)));
+  test('四处阵地的街景与景物逐像素不同', () async {
+    final images = <Uint8List>[];
+    for (final scene in BattleScene.values) {
+      images.add(await _renderBase(scene));
+    }
+    for (var i = 0; i < images.length; i++) {
+      for (var j = i + 1; j < images.length; j++) {
+        expect(
+          images[i],
+          isNot(equals(images[j])),
+          reason: '${BattleScene.values[i].label} vs ${BattleScene.values[j].label}',
+        );
+      }
+    }
   });
 }

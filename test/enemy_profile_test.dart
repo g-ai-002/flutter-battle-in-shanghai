@@ -136,7 +136,7 @@ void main() {
   });
 
   group('头目弹幕表', () {
-    test('三处阵地都有扇形、齐射、增援与一种重火力', () {
+    test('四处阵地都有扇形、齐射、增援与一种重火力', () {
       for (final scene in BattleScene.values) {
         expect(bossFans[scene]!.count, greaterThan(1), reason: scene.label);
         expect(bossAimed[scene]!.count, greaterThan(1), reason: scene.label);
@@ -148,9 +148,10 @@ void main() {
       expect(bossSummons[BattleScene.zhabei]!.kind, EnemyKind.infantry);
       expect(bossSummons[BattleScene.bund]!.kind, EnemyKind.rifleman);
       expect(bossSummons[BattleScene.warehouse]!.kind, EnemyKind.raider);
+      expect(bossSummons[BattleScene.suzhou]!.kind, EnemyKind.rifleman);
     });
 
-    test('闸北重炮直射，外滩与仓库的炮击按表取值', () {
+    test('闸北重炮直射，其余阵地的炮击按表取值', () {
       final zhabei = makeSim();
       zhabei.enemies.add(boss()..pattern = 3);
       zhabei.update(1 / 60);
@@ -158,7 +159,11 @@ void main() {
       expect(zhabei.enemyShots.single.radius, 6);
       expect(zhabei.enemyShots.single.damage, closeTo(22, 0.001));
 
-      for (final scene in [BattleScene.bund, BattleScene.warehouse]) {
+      for (final scene in [
+        BattleScene.bund,
+        BattleScene.warehouse,
+        BattleScene.suzhou,
+      ]) {
         final sim = makeSim(scene: scene);
         sim.enemies.add(boss()..pattern = 3);
         sim.update(1 / 60);

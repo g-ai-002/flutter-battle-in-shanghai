@@ -70,7 +70,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('WASD'), findsOneWidget);
     expect(find.textContaining('急救包'), findsOneWidget);
-    expect(find.textContaining('三处阵地'), findsOneWidget);
+    expect(find.textContaining('四处阵地'), findsOneWidget);
     await tester.tap(find.text('明白了'));
     await tester.pumpAndSettle();
   });

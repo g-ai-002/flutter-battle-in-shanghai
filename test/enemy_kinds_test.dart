@@ -130,7 +130,7 @@ void main() {
   });
 
   group('阵地头目', () {
-    test('三处阵地的扇形弹幕张角各不相同', () {
+    test('四处阵地的扇形弹幕张角各不相同', () {
       double widestVx(BattleScene scene) {
         final sim = makeSim(scene: scene);
         sim.enemies.add(boss(EnemyKind.boss));
@@ -140,7 +140,8 @@ void main() {
             .reduce(math.max);
       }
 
-      expect(widestVx(BattleScene.warehouse), greaterThan(widestVx(BattleScene.zhabei)));
+      expect(widestVx(BattleScene.warehouse), greaterThan(widestVx(BattleScene.suzhou)));
+      expect(widestVx(BattleScene.suzhou), greaterThan(widestVx(BattleScene.zhabei)));
       expect(widestVx(BattleScene.zhabei), greaterThan(widestVx(BattleScene.bund)));
     });
 
@@ -159,9 +160,10 @@ void main() {
       expect(summons(BattleScene.zhabei), everyElement(EnemyKind.infantry));
       expect(summons(BattleScene.bund), everyElement(EnemyKind.rifleman));
       expect(summons(BattleScene.warehouse), everyElement(EnemyKind.raider));
+      expect(summons(BattleScene.suzhou), everyElement(EnemyKind.rifleman));
     });
 
-    test('闸北重炮直射，外滩与仓库改为炮击预警', () {
+    test('闸北重炮直射，其余阵地改为炮击预警', () {
       for (final scene in BattleScene.values) {
         final sim = makeSim(scene: scene);
         sim.enemies.add(boss(EnemyKind.boss)..pattern = 3);
@@ -183,7 +185,7 @@ void main() {
   });
 
   group('波次混编', () {
-    test('三处战役都混入了刀锋兵或盾牌兵', () {
+    test('四处战役都混入了刀锋兵或盾牌兵', () {
       for (final scene in BattleScene.values) {
         final kinds = sceneWaves(scene, Difficulty.veteran)
             .expand((wave) => wave.orders)

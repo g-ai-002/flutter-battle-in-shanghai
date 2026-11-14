@@ -4,7 +4,7 @@ import 'battle_config.dart';
 import 'battle_scenes.dart';
 import 'wave_plan.dart';
 
-/// 战役关卡的波次表：三处阵地各五波，越靠后的阵地敌军越硬。
+/// 战役关卡的波次表：四处阵地各五波，越靠后的阵地敌军越硬。
 ///
 /// 每处阵地单独成函数，随机数按阵地种子生成，因此同一关同一难度每次
 /// 阵型完全一致；无尽模式的编排仍在 `wave_plan.dart`。
@@ -21,6 +21,7 @@ List<WavePlan> sceneWaves(
     BattleScene.zhabei => _zhabeiWaves(builder, scene.hpScale),
     BattleScene.bund => _bundWaves(builder, scene.hpScale),
     BattleScene.warehouse => _warehouseWaves(builder, scene.hpScale),
+    BattleScene.suzhou => _suzhouWaves(builder, scene.hpScale),
   };
 }
 
@@ -257,7 +258,57 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
   return waves;
 }
 
-/// 把当前排好的刷怪点封成一波，三个阵地共用同一套写法。
+/// 苏州河：铁桥狭窄，正面压力最重，两侧钢梁后还藏着枪手。
+List<WavePlan> _suzhouWaves(WaveBuilder builder, double hp) {
+  final book = _WaveBook(builder, hp);
+
+  builder.line(EnemyKind.infantry, 7, 0.2, 0.42, fromX: 48, toX: 252);
+  builder.line(
+    EnemyKind.rifleman, 3, 1.6, 1.1,
+    fromX: 72, toX: 228, holdMin: 72, holdMax: 126,
+  );
+  final waves = <WavePlan>[book.next(1, name: '桥头遭遇')];
+
+  builder.line(
+    EnemyKind.rifleman, 5, 0.2, 0.55,
+    fromX: 56, toX: 244, holdMin: 64, holdMax: 120,
+  );
+  builder.add(EnemyKind.shield, 0.6, 96);
+  builder.add(EnemyKind.shield, 1.1, 204);
+  builder.line(EnemyKind.infantry, 4, 0.4, 0.5, fromX: 60, toX: 240);
+  waves.add(book.next(2, name: '铁桥封锁'));
+
+  builder.line(
+    EnemyKind.grenadier, 3, 0.4, 0.9,
+    fromX: 88, toX: 212, holdMin: 98, holdMax: 142,
+  );
+  builder.add(EnemyKind.armoredCar, 1.0, 88, holdY: 80);
+  builder.add(EnemyKind.armoredCar, 2.8, 212, holdY: 80);
+  builder.line(EnemyKind.infantry, 5, 0.2, 0.46);
+  waves.add(book.next(3, name: '河面炮火'));
+
+  builder.add(EnemyKind.armoredCar, 0.6, 82, holdY: 78);
+  builder.add(EnemyKind.armoredCar, 2.4, 218, holdY: 78);
+  builder.line(EnemyKind.shield, 2, 0.8, 0.9, fromX: 104, toX: 196);
+  builder.line(EnemyKind.raider, 2, 0.4, 0.55, fromX: 54, toX: 246);
+  builder.add(EnemyKind.grenadier, 2.4, 150, holdY: 120);
+  waves.add(book.next(4, name: '装甲登陆'));
+
+  builder.add(EnemyKind.infantry, 0.2, 50);
+  builder.add(EnemyKind.infantry, 0.5, 250);
+  builder.add(EnemyKind.raider, 0.8, 72);
+  builder.add(EnemyKind.raider, 1.0, 228);
+  builder.add(EnemyKind.rifleman, 1.2, 244, holdY: 92);
+  builder.add(EnemyKind.rifleman, 1.5, 56, holdY: 92);
+  builder.add(EnemyKind.shield, 1.8, 110);
+  builder.add(EnemyKind.shield, 2.0, 190);
+  builder.add(EnemyKind.grenadier, 2.2, 150, holdY: 120);
+  builder.add(EnemyKind.boss, 2.6, 150, holdY: 72);
+  waves.add(book.next(5, name: '桥心决战', boss: true));
+  return waves;
+}
+
+/// 把当前排好的刷怪点封成一波，四处阵地共用同一套写法。
 class _WaveBook {
   const _WaveBook(this.builder, this.hp);
 

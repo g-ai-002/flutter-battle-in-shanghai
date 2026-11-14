@@ -22,7 +22,7 @@ class ScenePalette {
     required this.rubble,
   });
 
-  /// 渐变画笔缓存的键位，三套配色之间不会互相命中。
+  /// 渐变画笔缓存的键位，各套配色之间不会互相命中。
   final int id;
 
   final Color roadTop;
@@ -91,10 +91,26 @@ class ScenePalette {
     ember: Color(0xFFFF8C4A),
     rubble: Color(0xFF52382C),
   );
+
+  static const ScenePalette suzhou = ScenePalette(
+    id: 4,
+    roadTop: Color(0xFF232C2D),
+    roadBottom: Color(0xFF0F1516),
+    walk: Color(0xFF303B3C),
+    curb: Color(0xFF4C5B5C),
+    roof: Color(0xFF273031),
+    roofEdge: Color(0xFF3C4A4B),
+    window: Color(0xFFD6A45E),
+    lane: Color(0xFF8C9C98),
+    beam: Color(0xFFD6EDF2),
+    ember: Color(0xFFFFA65A),
+    rubble: Color(0xFF374442),
+  );
 }
 
 ScenePalette paletteOf(BattleScene scene) => switch (scene) {
   BattleScene.zhabei => ScenePalette.zhabei,
   BattleScene.bund => ScenePalette.bund,
   BattleScene.warehouse => ScenePalette.warehouse,
+  BattleScene.suzhou => ScenePalette.suzhou,
 };
