@@ -37,6 +37,7 @@
   敌军与弹道在任何阵地都同样醒目。
 - 🛡️ **兵种克制**：盾牌兵把正面子弹伤害削去 45%，爆炸伤害照单全收；
   刀锋兵高速贴脸，逼玩家在点射与手雷之间切换目标。
+- 🧩 **数据表驱动**：兵种行为、开火参数、头目四招弹幕与士兵外观均为常量表，新增兵种只改数据不动逻辑。
 - 📱 **自适应布局**：手机 / 折叠屏 / 平板 / Windows 窗口自适应；战场居中，标题与生命在上、得分在右上、
   战况与头目血条浮在战场上方或左侧、控制按钮统一在下方；窄屏自动切换紧凑 HUD。
 - 🔄 **按面积选方向**：3:4 的战场在手机上竖屏更大，只有横屏确实能放大战场时才旋转全屏，退出即恢复。
@@ -46,30 +47,30 @@
 
 ## 下载
 
-最新版本 v0.4.0（敌军扩充与头目差异化）：[Run 3151](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3151)
+最新版本 v0.4.1（兵种与头目弹幕数据表化）：[Run 3158](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3158)
 测试、Android、Windows、Web 与 Release 全部通过，三端产物已上传到
-[Release v0.4.0](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.4.0)。
-本版新增刀锋兵、盾牌兵与三处阵地专属头目弹幕，武器、工事、空袭与计分规则保持不变。
+[Release v0.4.1](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.4.1)。
+本版重构 0.4.0 的增量代码，玩法、数值、画面与操作手感保持不变。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.4.0-android-aarch64.apk`（45 MiB） |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.4.0-windows-x86_64.zip`（27 MiB） |
-| Web | `flutter-battle-in-shanghai-0.4.0-web.zip`（29 MiB，解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.4.1-android-aarch64.apk`（45 MiB） |
+| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.4.1-windows-x86_64.zip`（27 MiB） |
+| Web | `flutter-battle-in-shanghai-0.4.1-web.zip`（29 MiB，解压后起静态服务器） |
 
-在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.4.0/>
+在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.4.1/>
 
 ## 版本
 
 | 版本 | 简介 |
 | --- | --- |
+| v0.4.1 | 重构 0.4.1 增量代码：兵种行为、头目四招弹幕与士兵外观收敛为数据表，玩法与画面不变 |
 | v0.4.0 | 新增刀锋兵与盾牌兵，三处阵地头目各有专属弹幕与名称 |
 | v0.3.2 | 性能专项：弹道与碎屑合批、重装单位贴图、火球渐变归一化与开局预热，繁忙帧指令约降 55% |
 | v0.3.1 | 重构 0.3.0 增量代码：美术按街景/景物/单位/特效拆模块，波次与解锁进度独立，玩法不变 |
 | v0.3.0 | 闸北/外滩/四行仓库三处阵地、独立波次与街景，通关顺序解锁 |
-| v0.2.2 | 性能专项：前景街垒/探照灯/工事改贴图，渐变画笔复用，逻辑步零闭包分配 |
 
-更早：v0.2.1 重构模块边界；v0.2.0 沙袋工事与空袭支援；v0.1.2 静态图层位图缓存与粒子池化；v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
+更早：v0.2.2 性能专项；v0.2.1 重构模块边界；v0.2.0 沙袋工事与空袭支援；v0.1.2 静态图层位图缓存与粒子池化；v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
 
 ## 开发
 
