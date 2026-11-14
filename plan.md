@@ -50,7 +50,7 @@
 
 ### v0.3.2 (PATCH) — 2026-11-14
 
-- **状态**: 🚧 开发完成，待 CI 构建
+- **状态**: ⏳ 构建完成（[Run 3145](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3145)：测试、Android、Web 三项通过，APK 与 Web ZIP 已上传，Web 已发布到 `tea-pages/v0.3.2`）；构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 - **目标**: 性能与流畅度专项，收敛稳态帧的绘制指令、原生 shader 创建与逐帧对象分配，
   玩法、数值、画面与操作手感保持不变。
 - **类型**: 性能优化（与 0.3.1 的重构版本相互独立）

@@ -41,14 +41,16 @@
 
 ## 下载
 
-最新版本 v0.3.2（性能与流畅度优化版）：构建中，产物与在线试玩地址见该版本的构建记录。
+最新版本 v0.3.2（性能与流畅度优化版）：[Run 3145](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3145)
+测试、Android 与 Web 三项通过，APK 与 Web ZIP 已上传，Web 已部署到在线试玩地址；
 玩法与画面与 v0.3.1 一致，繁忙帧的绘制指令数约降 55%，稳态帧不再新建渐变 shader。
+构建时 `windows-flutter` runner 不在线，Windows 任务排队，Release 待 runner 恢复后由 CI 补发。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.2-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.3.2-windows-x64.zip` |
-| Web | `flutter-battle-in-shanghai-0.3.2-web.zip`（解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.3.2-android-aarch64.apk`（Run 3145 Artifacts） |
+| Windows (x64, Win10+) | 待补：构建时 Windows runner 不在线，任务排队未执行，runner 恢复后补发 |
+| Web | `flutter-battle-in-shanghai-0.3.2-web.zip`（Run 3145 Artifacts，解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.3.2/>
 
