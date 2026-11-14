@@ -5,8 +5,6 @@ import '../utils/system_ui.dart';
 /// 焦土夜色 + 火焰橙的视觉基调。
 const Color appFlame = Color(0xFFC2452F);
 const Color appGold = Color(0xFFD9A65A);
-const Color appInk = Color(0xFF15110D);
-const Color appOlive = Color(0xFF6E7A5A);
 
 ThemeData buildLightTheme({String? fontFamily}) {
   const scheme = ColorScheme.light(

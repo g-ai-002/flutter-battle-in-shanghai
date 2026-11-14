@@ -19,11 +19,4 @@ void main() {
     expect(formatScore(1234567), '1,234,567');
     expect(formatScore(-1234), '-1,234');
   });
-
-  test('时长显示为分秒或秒', () {
-    expect(formatDuration(0), '0s');
-    expect(formatDuration(0.2), '1s');
-    expect(formatDuration(65.2), '1:06');
-    expect(formatDuration(600), '10:00');
-  });
 }

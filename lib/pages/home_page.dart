@@ -27,6 +27,14 @@ class HomePage extends StatelessWidget {
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final entries = _entries(context, settings, colors);
+    // 入口、出战配置与战绩在宽窄布局里顺序一致，只换外层排列。
+    final side = <Widget>[
+      _EntryGrid(entries: entries),
+      const SizedBox(height: 18),
+      _Loadout(settings: settings),
+      const SizedBox(height: 14),
+      _StatsLine(records: settings.records),
+    ];
 
     return Scaffold(
       body: Container(
@@ -73,13 +81,7 @@ class HomePage extends StatelessWidget {
                                   width: 500,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      _EntryGrid(entries: entries),
-                                      const SizedBox(height: 18),
-                                      _Loadout(settings: settings),
-                                      const SizedBox(height: 14),
-                                      _StatsLine(records: settings.records),
-                                    ],
+                                    children: side,
                                   ),
                                 ),
                               ],
@@ -92,11 +94,7 @@ class HomePage extends StatelessWidget {
                               scene: settings.scene,
                             ),
                             const SizedBox(height: 20),
-                            _EntryGrid(entries: entries),
-                            const SizedBox(height: 16),
-                            _Loadout(settings: settings),
-                            const SizedBox(height: 14),
-                            _StatsLine(records: settings.records),
+                            ...side,
                           ],
                           const SizedBox(height: 16),
                           Text(

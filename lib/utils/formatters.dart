@@ -42,12 +42,3 @@ String formatScore(int score) {
   }
   return score < 0 ? '-$buffer' : buffer.toString();
 }
-
-/// 秒数显示为 `m:ss`，不足一分钟只显示秒。
-String formatDuration(double seconds) {
-  final total = seconds <= 0 ? 0 : seconds.ceil();
-  final minutes = total ~/ 60;
-  final rest = total % 60;
-  if (minutes == 0) return '${rest}s';
-  return '$minutes:${rest.toString().padLeft(2, '0')}';
-}

@@ -8,10 +8,6 @@ class EntryTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.trailing,
-    this.radius = 16,
-    this.padding = const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-    this.gap = 14,
   });
 
   /// 左侧徽章，通常是 [EntryBadge]。
@@ -21,20 +17,11 @@ class EntryTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  /// 标题右侧的标签，例如难度或状态。
-  final Widget? trailing;
-
-  final double radius;
-  final EdgeInsets padding;
-
-  /// 徽章与文字的间距。
-  final double gap;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final borderRadius = BorderRadius.circular(radius);
+    final borderRadius = BorderRadius.circular(16);
     return Material(
       color: colors.surface,
       borderRadius: borderRadius,
@@ -42,7 +29,7 @@ class EntryTile extends StatelessWidget {
         borderRadius: borderRadius,
         onTap: onTap,
         child: Container(
-          padding: padding,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
           decoration: BoxDecoration(
             borderRadius: borderRadius,
             border: Border.all(color: colors.outline.withValues(alpha: 0.8)),
@@ -50,29 +37,19 @@ class EntryTile extends StatelessWidget {
           child: Row(
             children: [
               leading,
-              SizedBox(width: gap),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        if (trailing != null) ...[
-                          const SizedBox(width: 8),
-                          trailing!,
-                        ],
-                      ],
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 3),
                     Text(
@@ -99,39 +76,24 @@ class EntryTile extends StatelessWidget {
   }
 }
 
-/// 入口卡片的方形徽章：图标或序号，底色由强调色淡化得到。
+/// 入口卡片的方形徽章：图标，底色由强调色淡化得到。
 class EntryBadge extends StatelessWidget {
-  const EntryBadge({
-    super.key,
-    required this.accent,
-    this.icon,
-    this.label,
-    this.size = 46,
-  }) : assert(icon != null || label != null, '徽章需要图标或文字');
+  const EntryBadge({super.key, required this.accent, required this.icon});
 
   final Color accent;
-  final IconData? icon;
-  final String? label;
-  final double size;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    final icon = this.icon;
     return Container(
-      width: size,
-      height: size,
+      width: 46,
+      height: 46,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(size * 0.26),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: icon != null
-          ? Icon(icon, color: accent, size: size * 0.52)
-          : Text(
-              label ?? '',
-              style: Theme.of(context).textTheme.titleSmall
-                  ?.copyWith(color: accent),
-            ),
+      child: Icon(icon, color: accent, size: 24),
     );
   }
 }
