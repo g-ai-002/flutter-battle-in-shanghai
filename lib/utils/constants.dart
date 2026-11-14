@@ -8,7 +8,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = '血战上海滩';
-  static const String version = '0.4.1';
+  static const String version = '0.4.2';
 
   static const String prefKeyDarkMode = 'dark_mode';
   static const String prefKeyDifficulty = 'difficulty';
