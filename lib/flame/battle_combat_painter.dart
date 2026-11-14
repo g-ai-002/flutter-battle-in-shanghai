@@ -9,6 +9,7 @@ import '../theme/battle_painting.dart';
 import '../theme/paint_kit.dart';
 import '../utils/constants.dart';
 import 'label_cache.dart';
+import 'path_batch.dart';
 import 'scene_cache.dart';
 
 /// 战斗层绘制：工事、落点、补给、敌军、守军、弹道与反馈。
@@ -29,10 +30,20 @@ class BattleCombatPainter {
   /// 敌军按纵向排序用的复用缓冲，避免每帧新建列表。
   final List<EnemyUnit> _sortedEnemies = [];
 
+  /// 弹道与粒子的合批缓冲：一帧内同色几何只留少量 drawPath。
+  final PathBatch _batch = PathBatch();
+
+  /// 粒子透明度量化后的颜色，避免每颗碎屑每帧新建一个 Color。
+  final Map<int, Color> _tints = {};
+
   /// 固定的比较器：不必每帧创建闭包。
   static int _byDepth(EnemyUnit a, EnemyUnit b) => a.y.compareTo(b.y);
 
   double _clock = 0;
+
+  /// 本帧参与合批的组数，测试用来确认绘制调用被压到个位数。
+  @visibleForTesting
+  int get batchGroups => _batch.groupCount;
 
   void paint(Canvas canvas, double clock) {
     _clock = clock;
@@ -43,7 +54,7 @@ class BattleCombatPainter {
     _sortedEnemies
       ..clear()
       ..addAll(sim.enemies);
-    if (_sortedEnemies.length > 1) {
+    if (_sortedEnemies.length > 1 && !_depthSorted()) {
       _sortedEnemies.sort(_byDepth);
     }
     for (final enemy in _sortedEnemies) {
@@ -55,6 +66,14 @@ class BattleCombatPainter {
     _paintEffects(canvas);
     _paintParticles(canvas);
     _paintPopups(canvas);
+  }
+
+  /// 敌军大多按推进顺序排在列表里，已有序时跳过排序。
+  bool _depthSorted() {
+    for (var i = 1; i < _sortedEnemies.length; i++) {
+      if (_sortedEnemies[i - 1].y > _sortedEnemies[i].y) return false;
+    }
+    return true;
   }
 
   void _paintCovers(Canvas canvas) {
@@ -223,20 +242,39 @@ class BattleCombatPainter {
           hostile: true,
         );
       case EnemyKind.armoredCar:
-        paintArmoredCar(
+        final center = Offset(enemy.x, enemy.y);
+        // 车体贴预渲染位图，车灯与白闪仍然逐帧绘制。
+        if (!cache.drawArmoredCar(canvas, center, enemy.spec.radius)) {
+          paintArmoredCarBody(canvas, center, radius: enemy.spec.radius);
+        }
+        paintArmoredCarLamp(
           canvas,
-          Offset(enemy.x, enemy.y),
+          center: center,
           radius: enemy.spec.radius,
-          flash: flash,
           time: _clock,
         );
-      case EnemyKind.boss:
-        paintBoss(
+        paintArmoredCarFlash(
           canvas,
-          Offset(enemy.x, enemy.y),
+          center: center,
           radius: enemy.spec.radius,
           flash: flash,
+        );
+      case EnemyKind.boss:
+        final center = Offset(enemy.x, enemy.y);
+        if (!cache.drawBoss(canvas, center, enemy.spec.radius)) {
+          paintBossBody(canvas, center, radius: enemy.spec.radius);
+        }
+        paintBossBeacon(
+          canvas,
+          center: center,
+          radius: enemy.spec.radius,
           time: _clock,
+        );
+        paintBossFlash(
+          canvas,
+          center: center,
+          radius: enemy.spec.radius,
+          flash: flash,
         );
     }
     if (enemy.isElite) _paintHealthBar(canvas, enemy);
@@ -317,46 +355,34 @@ class BattleCombatPainter {
   }
 
   void _paintBullets(Canvas canvas) {
+    // 一屏几十发子弹，同色尾焰合成一条路径，不再逐发设置画笔。
+    _batch.begin();
     for (final bullet in sim.enemyShots) {
-      final tail = Offset(
-        bullet.x - bullet.vx * 0.018,
-        bullet.y - bullet.vy * 0.018,
+      final head = Offset(bullet.x, bullet.y);
+      _batch.line(
+        bullet.trailColor,
+        bullet.radius * 2.2,
+        Offset(bullet.x - bullet.vx * 0.018, bullet.y - bullet.vy * 0.018),
+        head,
       );
-      canvas.drawLine(
-        tail,
-        Offset(bullet.x, bullet.y),
-        strokePaint(
-          bullet.trailColor,
-          bullet.radius * 2.2,
-          cap: StrokeCap.round,
-        ),
-      );
-      canvas.drawCircle(
-        Offset(bullet.x, bullet.y),
-        bullet.radius,
-        fillPaint(bullet.color),
-      );
+      _batch.dot(bullet.color, head, bullet.radius);
     }
     for (final bullet in sim.playerShots) {
-      final tail = Offset(
-        bullet.x - bullet.vx * 0.016,
-        bullet.y - bullet.vy * 0.016,
+      final head = Offset(bullet.x, bullet.y);
+      _batch.line(
+        bullet.trailColor,
+        bullet.radius * 2,
+        Offset(bullet.x - bullet.vx * 0.016, bullet.y - bullet.vy * 0.016),
+        head,
       );
-      canvas.drawLine(
-        tail,
-        Offset(bullet.x, bullet.y),
-        strokePaint(bullet.trailColor, bullet.radius * 2, cap: StrokeCap.round),
-      );
-      canvas.drawLine(
-        Offset(bullet.x, bullet.y),
+      _batch.line(
+        const Color(0xFFFFF3D0),
+        bullet.radius,
+        head,
         Offset(bullet.x, bullet.y - 3),
-        strokePaint(
-          const Color(0xFFFFF3D0),
-          bullet.radius,
-          cap: StrokeCap.round,
-        ),
       );
     }
+    _batch.flush(canvas);
   }
 
   void _paintEffects(Canvas canvas) {
@@ -440,14 +466,17 @@ class BattleCombatPainter {
   }
 
   void _paintParticles(Canvas canvas) {
+    // 碎屑按「颜色 + 透明度档位」合批：满屏爆炸从上百次圆形绘制降到十几次。
+    _batch.begin();
     for (final particle in sim.particles) {
-      canvas.drawCircle(
+      _batch.dot(
+        _tint(particle.color.toARGB32(), particle.ratio),
         Offset(particle.x, particle.y),
         particle.size * particle.ratio,
-        fillPaint(particle.color.withValues(alpha: particle.ratio)),
       );
     }
-    // 夜空余烬：持续上飘，给静止画面一点空气感。
+    _batch.flush(canvas);
+    // 夜空余烬：持续上飘，给静止画面一点空气感；颜色同样按档位复用。
     for (var i = 0; i < 10; i++) {
       final seed = i * 37.3;
       final x = (seed * 11) % Field.width;
@@ -456,9 +485,22 @@ class BattleCombatPainter {
       canvas.drawCircle(
         Offset(x, y),
         0.8,
-        fillPaint(const Color(0xFFFFA24A).withValues(alpha: twinkle)),
+        fillPaint(_tint(0xFFFFA24A, twinkle)),
       );
     }
+  }
+
+  /// 把透明度量化到固定档位并缓存颜色：碎屑与余烬每帧都在变淡，
+  /// 但档位有限，同一颜色不会每帧新建对象。
+  static const int _tintSteps = 16;
+
+  Color _tint(int argb, double alpha) {
+    final step = (alpha * _tintSteps).round().clamp(0, _tintSteps);
+    final key = argb * 32 + step;
+    final cached = _tints[key];
+    if (cached != null) return cached;
+    if (_tints.length > 256) _tints.clear();
+    return _tints[key] = Color(argb).withValues(alpha: step / _tintSteps);
   }
 
   void _paintPopups(Canvas canvas) {

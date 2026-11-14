@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../theme/battle_painting.dart';
 
+/// 文字缓存键：内容与样式组成记录，命中比较不拼接字符串。
+typedef _LabelKey = (String, double, int, int, double);
+
 /// 战场文字缓存：按内容与样式复用 [TextPainter]。
 ///
 /// 浮动分数与波次提示每帧都在重排，缓存后只在文字或样式真正变化时才
@@ -13,7 +16,7 @@ class BattleLabelCache {
   /// 透明度量化档数。
   static const int alphaSteps = 10;
 
-  final Map<String, TextPainter> _painters = {};
+  final Map<_LabelKey, TextPainter> _painters = {};
 
   /// 当前缓存的条目数。
   int get length => _painters.length;
@@ -30,7 +33,7 @@ class BattleLabelCache {
     FontWeight weight = FontWeight.w600,
     double spacing = 0,
   }) {
-    final key = '$text|$size|${color.toARGB32()}|${weight.value}|$spacing';
+    final key = (text, size, color.toARGB32(), weight.value, spacing);
     final cached = _painters.remove(key);
     if (cached != null) {
       _painters[key] = cached;

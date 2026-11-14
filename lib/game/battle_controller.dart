@@ -50,6 +50,9 @@ class BattleController extends ChangeNotifier {
   /// 拖动的灵敏度：手指移动 1px，角色跟随 1.15 个战场单位。
   static const double dragScale = 1.15;
 
+  /// 步进回调固定复用，渲染帧里不再创建闭包。
+  late final void Function(double) _stepFn = _onStep;
+
   void start() {
     sim.start();
     _lastStatus = sim.status;
@@ -58,8 +61,11 @@ class BattleController extends ChangeNotifier {
 
   void advance(double dt) {
     if (_disposed || sim.status == BattleStatus.paused) return;
-    _stepper.advance(dt, (span) => _step(math.min(span, maxStepSpan)));
+    _stepper.advance(dt, _stepFn);
   }
+
+  void _onStep(double span) =>
+      _step(span > maxStepSpan ? maxStepSpan : span);
 
   void _step(double span) {
     var dx = 0.0;
