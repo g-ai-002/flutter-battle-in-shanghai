@@ -49,15 +49,17 @@
 
 ## 下载
 
-最新版本 v0.5.0（新功能）：第四处阵地「苏州河 · 铁桥」与专属头目「九四式装甲炮艇」，
-独立钢桁架街景、五波桥头阵型与四发齐射弹幕。三端产物由 CI 构建后发布到
+最新版本 v0.5.0（新功能）：[Run 3172](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3172)
+测试、Android、Windows、Web 与 Release 全部通过，三端产物已上传到
 [Release v0.5.0](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.5.0)。
+本版新增第四处阵地「苏州河 · 铁桥」与专属头目「九四式装甲炮艇」，
+独立钢桁架街景、五波桥头阵型与四发齐射弹幕。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.5.0-android-aarch64.apk` |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.5.0-windows-x86_64.zip` |
-| Web | `flutter-battle-in-shanghai-0.5.0-web.zip`（解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.5.0-android-aarch64.apk`（44 MiB） |
+| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.5.0-windows-x86_64.zip`（27 MiB） |
+| Web | `flutter-battle-in-shanghai-0.5.0-web.zip`（29 MiB，解压后起静态服务器） |
 
 在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.5.0/>
 
