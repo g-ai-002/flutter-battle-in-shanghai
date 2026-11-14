@@ -212,33 +212,38 @@ const Rect kSoldierUnderBounds = Rect.fromLTRB(-9, -5, 9, 11);
 const Rect kSoldierOverBounds = Rect.fromLTRB(-9, -11.5, 10.5, 14);
 
 /// 步枪与背带：单独绘制，精灵缓存才能在枪口方向变化时继续复用。
+///
+/// 枪线直接按绝对坐标落笔，不再为每个士兵包一层 save / translate /
+/// restore：同屏十几个单位时省下的画布状态切换足够可观。
 void paintSoldierGun(
   Canvas canvas,
   Offset center, {
   required double radius,
   double aim = -math.pi / 2,
-}) {
-  canvas.save();
-  canvas.translate(center.dx, center.dy);
-  _paintGun(canvas, radius / 9, aim);
-  canvas.restore();
-}
+}) => _paintGun(canvas, radius / 9, aim, origin: center);
 
-void _paintGun(Canvas canvas, double s, double aim) {
-  final gunStart = Offset(math.cos(aim) * 3 * s, math.sin(aim) * 3 * s);
+void _paintGun(
+  Canvas canvas,
+  double s,
+  double aim, {
+  Offset origin = Offset.zero,
+}) {
+  final cosA = math.cos(aim);
+  final sinA = math.sin(aim);
+  final start = Offset(origin.dx + cosA * 3 * s, origin.dy + sinA * 3 * s);
   canvas.drawLine(
-    gunStart,
-    Offset(math.cos(aim) * 15 * s, math.sin(aim) * 15 * s),
+    start,
+    Offset(origin.dx + cosA * 15 * s, origin.dy + sinA * 15 * s),
     strokePaint(const Color(0xFF1A1512), 2.2 * s)..strokeCap = StrokeCap.round,
   );
   canvas.drawLine(
     Offset(
-      gunStart.dx + math.cos(aim + 1.2) * 3,
-      gunStart.dy + math.sin(aim + 1.2) * 3,
+      start.dx + math.cos(aim + 1.2) * 3,
+      start.dy + math.sin(aim + 1.2) * 3,
     ),
     Offset(
-      gunStart.dx + math.cos(aim - 1.4) * 2,
-      gunStart.dy + math.sin(aim - 1.4) * 3,
+      start.dx + math.cos(aim - 1.4) * 2,
+      start.dy + math.sin(aim - 1.4) * 3,
     ),
     strokePaint(const Color(0xFF1A1512), 1.6 * s),
   );

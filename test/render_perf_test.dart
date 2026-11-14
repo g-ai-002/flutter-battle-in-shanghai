@@ -374,8 +374,8 @@ void main() {
     }
     canvas.calls = 0;
     painter.paint(canvas, 2);
-    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时约 165 条。
-    expect(canvas.calls, lessThan(180));
+    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时约 126 条。
+    expect(canvas.calls, lessThan(135));
     painter.dispose();
   });
 }

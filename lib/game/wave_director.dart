@@ -29,6 +29,7 @@ class WaveDirector {
   final math.Random _random;
 
   final List<SpawnOrder> _queue = [];
+  final List<SpawnOrder> _due = [];
   int _nextSpawn = 0;
   double _spawnBase = 0;
 
@@ -107,6 +108,8 @@ class WaveDirector {
   }
 
   /// 取出当前逻辑时间应当出现的刷怪指令。
+  ///
+  /// 返回的列表在帧内即被消费，复用同一个缓冲即可，刷怪时不再分配新列表。
   List<SpawnOrder> takeDue(double now) {
     if (allSpawned) return const [];
     final elapsed = now - _spawnBase;
@@ -116,13 +119,16 @@ class WaveDirector {
       count++;
     }
     if (count == 0) return const [];
-    final due = _queue.sublist(_nextSpawn, _nextSpawn + count);
+    _due
+      ..clear()
+      ..addAll(_queue.getRange(_nextSpawn, _nextSpawn + count));
     _nextSpawn += count;
-    return due;
+    return _due;
   }
 
   void reset() {
     _queue.clear();
+    _due.clear();
     _nextSpawn = 0;
     _spawnBase = 0;
     plan = null;

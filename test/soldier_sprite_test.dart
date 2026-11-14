@@ -53,6 +53,36 @@ Future<Uint8List> _render(void Function(Canvas canvas) draw, {double zoom = 2}) 
 
 double _walk(int frame) => frame * 2 * math.pi / SceneCache.soldierWalkFrames;
 
+/// 旧版枪线：在平移后的画布上用相对坐标落笔，作为绝对坐标的像素基准。
+void _paintGunTranslated(Canvas canvas, Offset center, double radius, double aim) {
+  final s = radius / 9;
+  canvas.save();
+  canvas.translate(center.dx, center.dy);
+  final start = Offset(math.cos(aim) * 3 * s, math.sin(aim) * 3 * s);
+  canvas.drawLine(
+    start,
+    Offset(math.cos(aim) * 15 * s, math.sin(aim) * 15 * s),
+    Paint()
+      ..color = const Color(0xFF1A1512)
+      ..strokeWidth = 2.2 * s
+      ..strokeCap = StrokeCap.round,
+  );
+  canvas.drawLine(
+    Offset(
+      start.dx + math.cos(aim + 1.2) * 3,
+      start.dy + math.sin(aim + 1.2) * 3,
+    ),
+    Offset(
+      start.dx + math.cos(aim - 1.4) * 2,
+      start.dy + math.sin(aim - 1.4) * 3,
+    ),
+    Paint()
+      ..color = const Color(0xFF1A1512)
+      ..strokeWidth = 1.6 * s,
+  );
+  canvas.restore();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -144,7 +174,7 @@ void main() {
     cache.dispose();
   });
 
-  test('缓存士兵只用贴图加两道枪线', () {
+  test('缓存士兵只用贴图加两道枪线，枪线不再包裹画布状态', () {
     final cache = SceneCache()..ensure();
     final look = enemyLooks[EnemyKind.rifleman]!;
     final direct = _CountingCanvas();
@@ -169,8 +199,30 @@ void main() {
       aim: math.pi / 2,
       hostile: true,
     );
-    expect(cached.calls, 7);
+    // 上下半身各一张贴图 + 两道枪线；绝对坐标落笔省掉 save/translate/restore。
+    expect(cached.calls, 4);
     expect(cached.calls, lessThan(direct.calls));
     cache.dispose();
+  });
+
+  test('枪线绝对坐标绘制与旧版平移画布逐像素一致', () async {
+    const center = Offset(150, 200);
+    for (final aim in [-math.pi / 2, 0.3, 1.2, 2.7]) {
+      final direct = await _render(
+        (canvas) => _paintGunTranslated(canvas, center, 9, aim),
+      );
+      final absolute = await _render(
+        (canvas) => paintSoldierGun(canvas, center, radius: 9, aim: aim),
+      );
+      final (maxDiff, differing) = _compare(direct, absolute);
+      expect(maxDiff, 0, reason: 'aim $aim');
+      expect(differing, 0, reason: 'aim $aim');
+    }
+  });
+
+  test('枪线不再切换画布状态，单次只留两道 drawLine', () {
+    final canvas = _CountingCanvas();
+    paintSoldierGun(canvas, const Offset(120, 200), radius: 9, aim: 0.7);
+    expect(canvas.calls, 2);
   });
 }

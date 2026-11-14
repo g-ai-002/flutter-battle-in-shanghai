@@ -47,17 +47,20 @@ class BattleFeedback {
       popups[write++] = popup;
     }
     if (write != popups.length) popups.length = write;
+    write = 0;
     for (final particle in particles) {
       particle.life -= dt;
       particle.x += particle.vx * dt;
       particle.y += particle.vy * dt;
       particle.vx *= 0.98;
       particle.vy += 42 * dt;
+      if (particle.life <= 0) {
+        _recycle(particle);
+        continue;
+      }
+      particles[write++] = particle;
     }
-    for (var i = particles.length - 1; i >= 0; i--) {
-      if (particles[i].life > 0) continue;
-      _recycle(particles.removeAt(i));
-    }
+    if (write != particles.length) particles.length = write;
     if (shake > 0) shake = math.max(0, shake - dt * 22);
   }
 

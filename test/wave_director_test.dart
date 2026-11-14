@@ -41,6 +41,19 @@ void main() {
       expect(director.pendingSpawns, before - due.length);
     });
 
+    test('连续取刷怪指令复用同一缓冲，不逐次分配列表', () {
+      final director = WaveDirector(
+        mode: BattleMode.campaign,
+        difficulty: Difficulty.veteran,
+      )..begin(1, 100);
+      final first = director.takeDue(101.8);
+      expect(first, isNotEmpty);
+      final second = director.takeDue(200);
+      expect(second, isNotEmpty);
+      expect(identical(first, second), isTrue);
+      expect(director.takeDue(200), isEmpty);
+    });
+
     test('头目波次延长集结并给出警告', () {
       final director = WaveDirector(
         mode: BattleMode.campaign,

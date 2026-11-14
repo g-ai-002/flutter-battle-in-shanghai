@@ -34,6 +34,9 @@ class SceneCache {
 
   final Map<_Layer, ui.Image> _images = {};
   final List<ui.Image?> _covers = List<ui.Image?>.filled(coverWearSteps, null);
+
+  /// 位图源矩形：位图录制后尺寸固定，贴图时直接复用，稳态帧不再逐张新建 Rect。
+  final Map<ui.Image, Rect> _sources = {};
   ui.Image? _armoredCar;
   ui.Image? _boss;
 
@@ -396,12 +399,7 @@ class SceneCache {
   }
 
   void _draw(Canvas canvas, ui.Image image, Rect dst) {
-    canvas.drawImageRect(
-      image,
-      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-      dst,
-      _imagePaint,
-    );
+    canvas.drawImageRect(image, _sources[image]!, dst, _imagePaint);
   }
 
   ui.Image _record(
@@ -421,10 +419,17 @@ class SceneCache {
       } else {
         _soldierBuilds++;
       }
-      return picture.toImageSync(
+      final image = picture.toImageSync(
         (size.width * zoom).ceil(),
         (size.height * zoom).ceil(),
       );
+      _sources[image] = Rect.fromLTWH(
+        0,
+        0,
+        image.width.toDouble(),
+        image.height.toDouble(),
+      );
+      return image;
     } finally {
       picture.dispose();
     }
@@ -440,6 +445,7 @@ class SceneCache {
       image.dispose();
     }
     _images.clear();
+    _sources.clear();
     for (var i = 0; i < _covers.length; i++) {
       _covers[i]?.dispose();
       _covers[i] = null;

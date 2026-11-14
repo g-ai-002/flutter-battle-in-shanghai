@@ -81,5 +81,22 @@ void main() {
       expect(particle.vy, greaterThan(vy));
       expect(particle.life, lessThan(particle.maxLife));
     });
+
+    test('中间粒子到期时原地压缩，存活粒子顺序不变', () {
+      final feedback = BattleFeedback(random: math.Random(7));
+      feedback.burst(100, 100, 10, 8);
+      final before = List<Particle>.of(feedback.particles);
+      before[1].life = 0;
+      before[3].life = 0;
+      feedback.tick(0);
+
+      expect(feedback.particles, hasLength(6));
+      expect(feedback.particles, isNot(contains(before[1])));
+      expect(feedback.particles, isNot(contains(before[3])));
+      expect(
+        feedback.particles.map((item) => before.indexOf(item)),
+        orderedEquals([0, 2, 4, 5, 6, 7]),
+      );
+    });
   });
 }
