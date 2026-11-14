@@ -6,8 +6,8 @@ import 'package:battle_in_shanghai/game/entities.dart';
 import 'package:battle_in_shanghai/pages/widgets/battle_hud.dart';
 import 'package:battle_in_shanghai/pages/widgets/hud_cards.dart';
 import 'package:battle_in_shanghai/theme/app_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 BattleSim startedSim() {
   final sim = BattleSim(

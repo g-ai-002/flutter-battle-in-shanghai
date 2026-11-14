@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../game/battle_config.dart';
 import '../../game/battle_scenes.dart';

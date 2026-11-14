@@ -8,8 +8,8 @@ import 'package:battle_in_shanghai/game/entities.dart';
 import 'package:battle_in_shanghai/theme/battle_painting.dart';
 import 'package:battle_in_shanghai/theme/paint_kit.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

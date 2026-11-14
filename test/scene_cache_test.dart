@@ -4,8 +4,8 @@ import 'package:battle_in_shanghai/flame/battle_scene_painter.dart';
 import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/game/battle_sim.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -2,8 +2,8 @@ import 'package:battle_in_shanghai/utils/battlefield_layout.dart';
 import 'package:battle_in_shanghai/utils/battlefield_display_mode.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   group('战场尺寸', () {

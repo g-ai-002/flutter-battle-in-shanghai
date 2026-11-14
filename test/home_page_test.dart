@@ -4,8 +4,8 @@ import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/app_theme.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

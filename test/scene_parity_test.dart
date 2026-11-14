@@ -4,8 +4,8 @@ import 'dart:ui' as ui;
 import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/theme/battle_painting.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 逐像素对照：缓存贴图必须和直接绘制的画面一致，边缘允许 1~2 级差异。
 Future<Uint8List> _render(

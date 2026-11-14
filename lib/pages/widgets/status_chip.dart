@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 状态胶囊：淡底细边的圆角标语，战况条与标签共用。
 class StatusChip extends StatelessWidget {

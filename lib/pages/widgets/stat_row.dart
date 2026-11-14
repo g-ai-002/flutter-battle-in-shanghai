@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 左标签右数值的一行，结算弹窗与设置页共用。
 class StatRow extends StatelessWidget {

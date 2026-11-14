@@ -13,8 +13,8 @@ import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/scene_palette.dart';
 import 'package:battle_in_shanghai/theme/scene_props.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Uint8List> _renderBase(BattleScene scene) async {

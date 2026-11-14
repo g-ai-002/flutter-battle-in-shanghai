@@ -6,8 +6,8 @@ import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/theme/battle_painting.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// 只统计绘制调用次数的画布：所有方法经 noSuchMethod 计数后丢弃。
 class _CountingCanvas implements Canvas {
