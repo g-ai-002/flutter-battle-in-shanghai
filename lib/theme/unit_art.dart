@@ -2,11 +2,66 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../game/battle_config.dart';
 import 'paint_kit.dart';
 
 /// 地面单位的程序化剪影：士兵、装甲车与头目战车。
 ///
 /// 单位以中心为原点、按半径缩放，因此同一套画法适配手机与桌面。
+
+/// 士兵外观：配色、步伐与手里的克制装备。
+class SoldierLook {
+  const SoldierLook(
+    this.uniform,
+    this.helmet,
+    this.accent,
+    this.walk, {
+    this.aimAtPlayer = true,
+    this.shield = false,
+    this.blade = false,
+  });
+
+  final Color uniform, helmet, accent;
+  final double walk;
+  final bool aimAtPlayer, shield, blade;
+}
+
+/// 敌军士兵外观表：步兵低头推进，其余兵种把枪口转向玩家。
+const Map<EnemyKind, SoldierLook> enemyLooks = {
+  EnemyKind.infantry: SoldierLook(
+    Color(0xFF595142),
+    Color(0xFF403A30),
+    Color(0xFF9C5A2A),
+    7,
+    aimAtPlayer: false,
+  ),
+  EnemyKind.rifleman: SoldierLook(
+    Color(0xFF4C473C),
+    Color(0xFF363229),
+    Color(0xFF7A2A20),
+    2,
+  ),
+  EnemyKind.grenadier: SoldierLook(
+    Color(0xFF5C543D),
+    Color(0xFF453E30),
+    Color(0xFF9C5A2A),
+    2.4,
+  ),
+  EnemyKind.raider: SoldierLook(
+    Color(0xFF54412F),
+    Color(0xFF3A2C20),
+    Color(0xFFC2452F),
+    9,
+    blade: true,
+  ),
+  EnemyKind.shield: SoldierLook(
+    Color(0xFF4E5341),
+    Color(0xFF403A30),
+    Color(0xFF9C5A2A),
+    7,
+    shield: true,
+  ),
+};
 
 /// 玩家与敌军共用的士兵剪影。
 void paintSoldier(

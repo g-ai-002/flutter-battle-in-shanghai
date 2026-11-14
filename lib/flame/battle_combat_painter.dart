@@ -204,59 +204,26 @@ class BattleCombatPainter {
     final flash = enemy.hitFlash.clamp(0.0, 1.0);
     switch (enemy.kind) {
       case EnemyKind.infantry:
+      case EnemyKind.rifleman:
+      case EnemyKind.grenadier:
       case EnemyKind.raider:
       case EnemyKind.shield:
-        final kind = enemy.kind;
+        final look = enemyLooks[enemy.kind]!;
         paintSoldier(
           canvas,
           Offset(enemy.x, enemy.y),
           radius: enemy.spec.radius,
-          uniform: kind == EnemyKind.raider
-              ? const Color(0xFF54412F)
-              : kind == EnemyKind.shield
-              ? const Color(0xFF4E5341)
-              : const Color(0xFF595142),
-          helmet: kind == EnemyKind.raider
-              ? const Color(0xFF3A2C20)
-              : const Color(0xFF403A30),
-          accent: kind == EnemyKind.raider
-              ? const Color(0xFFC2452F)
-              : const Color(0xFF9C5A2A),
-          aim: kind == EnemyKind.infantry
-              ? math.pi / 2
-              : math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
-          walk:
-              enemy.timer * (kind == EnemyKind.raider ? 9 : 7) + enemy.bobSeed,
+          uniform: look.uniform,
+          helmet: look.helmet,
+          accent: look.accent,
+          aim: look.aimAtPlayer
+              ? math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x)
+              : math.pi / 2,
+          walk: enemy.timer * look.walk + enemy.bobSeed,
           flash: flash,
           hostile: true,
-          shield: kind == EnemyKind.shield,
-          blade: kind == EnemyKind.raider,
-        );
-      case EnemyKind.rifleman:
-        paintSoldier(
-          canvas,
-          Offset(enemy.x, enemy.y),
-          radius: enemy.spec.radius,
-          uniform: const Color(0xFF4C473C),
-          helmet: const Color(0xFF363229),
-          accent: const Color(0xFF7A2A20),
-          aim: math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
-          walk: enemy.timer * 2,
-          flash: flash,
-          hostile: true,
-        );
-      case EnemyKind.grenadier:
-        paintSoldier(
-          canvas,
-          Offset(enemy.x, enemy.y),
-          radius: enemy.spec.radius,
-          uniform: const Color(0xFF5C543D),
-          helmet: const Color(0xFF453E30),
-          accent: const Color(0xFF9C5A2A),
-          aim: math.atan2(sim.player.y - enemy.y, sim.player.x - enemy.x),
-          walk: enemy.timer * 2.4,
-          flash: flash,
-          hostile: true,
+          shield: look.shield,
+          blade: look.blade,
         );
       case EnemyKind.armoredCar:
         final center = Offset(enemy.x, enemy.y);

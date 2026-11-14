@@ -131,12 +131,15 @@ void paintBattlefieldPreview(Canvas canvas, Size size, BattleScene scene) {
   final palette = paletteOf(scene);
   paintStreet(canvas, field, 0, palette);
   paintSceneProps(canvas, field, scene, palette);
+  final infantry = enemyLooks[EnemyKind.infantry]!;
+  final rifleman = enemyLooks[EnemyKind.rifleman]!;
   paintSoldier(
     canvas,
     const Offset(96, 168),
     radius: 9,
-    uniform: const Color(0xFF595142),
-    helmet: const Color(0xFF403A30),
+    uniform: infantry.uniform,
+    helmet: infantry.helmet,
+    accent: infantry.accent,
     aim: 1.5707963267948966,
     walk: 1.2,
     hostile: true,
@@ -145,9 +148,9 @@ void paintBattlefieldPreview(Canvas canvas, Size size, BattleScene scene) {
     canvas,
     const Offset(206, 214),
     radius: 9,
-    uniform: const Color(0xFF4C473C),
-    helmet: const Color(0xFF363229),
-    accent: const Color(0xFF7A2A20),
+    uniform: rifleman.uniform,
+    helmet: rifleman.helmet,
+    accent: rifleman.accent,
     aim: 1.9,
     hostile: true,
   );
