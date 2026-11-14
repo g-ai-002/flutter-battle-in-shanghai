@@ -36,6 +36,8 @@ class SceneCache {
 
   final Map<_Layer, ui.Image> _images = {};
   final List<ui.Image?> _covers = List<ui.Image?>.filled(coverWearSteps, null);
+  ui.Image? _armoredCar;
+  ui.Image? _boss;
 
   final Paint _imagePaint = Paint()..filterQuality = FilterQuality.low;
 
@@ -50,8 +52,11 @@ class SceneCache {
   @visibleForTesting
   int get layerBuilds => _layerBuilds;
 
-  /// 全部预渲染位图的张数：七张整层位图加五档工事磨损图。
-  static int get layerCount => _Layer.values.length + coverWearSteps;
+  /// 全部预渲染位图的张数：七张整层位图、五档工事磨损图与两张重装单位精灵。
+  static int get layerCount =>
+      _Layer.values.length + coverWearSteps + _unitSpriteCount;
+
+  static const int _unitSpriteCount = 2;
 
   /// 懒加载：首帧创建，失败后不再重试。
   void ensure() {
@@ -113,6 +118,18 @@ class SceneCache {
           },
         );
       }
+      // 重装单位的车体整局不变，只有车灯、警示灯与受击白闪逐帧变化。
+      _armoredCar = _record(kArmoredCarArtBounds.size, _zoom, (canvas) {
+        canvas.translate(
+          -kArmoredCarArtBounds.left,
+          -kArmoredCarArtBounds.top,
+        );
+        paintArmoredCarBody(canvas, Offset.zero, radius: kArmoredCarArtRadius);
+      });
+      _boss = _record(kBossArtBounds.size, _zoom, (canvas) {
+        canvas.translate(-kBossArtBounds.left, -kBossArtBounds.top);
+        paintBossBody(canvas, Offset.zero, radius: kBossArtRadius);
+      });
       _ready = true;
     } catch (_) {
       _unavailable = true;
@@ -199,6 +216,35 @@ class SceneCache {
   void drawVignette(Canvas canvas) =>
       _drawLayer(canvas, _Layer.vignette, Offset.zero & fieldSize);
 
+  /// 装甲车与头目的车体贴图：按基准半径缩放，返回 false 表示缓存不可用。
+  bool drawArmoredCar(Canvas canvas, Offset center, double radius) =>
+      _drawUnit(canvas, _armoredCar, center, radius / kArmoredCarArtRadius,
+          kArmoredCarArtBounds);
+
+  bool drawBoss(Canvas canvas, Offset center, double radius) =>
+      _drawUnit(canvas, _boss, center, radius / kBossArtRadius, kBossArtBounds);
+
+  bool _drawUnit(
+    Canvas canvas,
+    ui.Image? image,
+    Offset center,
+    double scale,
+    Rect bounds,
+  ) {
+    if (image == null) return false;
+    _draw(
+      canvas,
+      image,
+      Rect.fromLTWH(
+        center.dx + bounds.left * scale,
+        center.dy + bounds.top * scale,
+        bounds.width * scale,
+        bounds.height * scale,
+      ),
+    );
+    return true;
+  }
+
   void drawGlow(Canvas canvas, Offset center) => _drawLayer(
     canvas,
     _Layer.glow,
@@ -251,5 +297,9 @@ class SceneCache {
       _covers[i]?.dispose();
       _covers[i] = null;
     }
+    _armoredCar?.dispose();
+    _armoredCar = null;
+    _boss?.dispose();
+    _boss = null;
   }
 }

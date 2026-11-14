@@ -118,48 +118,102 @@ void paintRoofs(
 }
 
 /// 车道线、碎石与弹坑的滚动部分；探照灯单独成层，便于缓存成位图。
+///
+/// 每类滚动元素的横向位置固定、只随时间纵向平移，因此把几何建一次路径、
+/// 逐帧按周期平移贴图即可：一帧从三十来条绘制指令降到六次 drawPath。
 void paintStreetScroll(
   Canvas canvas,
   Size size,
   double time, [
   ScenePalette palette = ScenePalette.zhabei,
 ]) {
+  if (_scrollField != size || _dashPath == null) _buildScrollPaths(size);
   // 车道虚线：随画面下移，制造前进感。
-  const dash = 26.0;
-  const gap = 30.0;
-  final dashShift = (time * 132) % (dash + gap);
-  final dashPaint = fillPaint(palette.lane);
-  for (var y = -dash - gap + dashShift; y < size.height; y += dash + gap) {
-    canvas.drawRect(
-      Rect.fromLTWH(size.width / 2 - 2.4, y, 4.8, dash),
-      dashPaint,
-    );
-  }
-  final lanePaint = fillPaint(palette.lane.withValues(alpha: 0.55));
-  for (final x in [_roofWidth + 34, size.width - _roofWidth - 34]) {
-    for (var y = -40 + dashShift * 0.6; y < size.height; y += 70) {
-      canvas.drawRect(Rect.fromLTWH(x, y, 1.6, 22), lanePaint);
-    }
-  }
+  final dashShift = (time * 132) % (_dash + _dashGap);
+  canvas.save();
+  canvas.translate(0, dashShift);
+  canvas.drawPath(_dashPath!, fillPaint(palette.lane));
+  canvas.restore();
+
+  canvas.save();
+  canvas.translate(0, dashShift * 0.6);
+  canvas.drawPath(_lanePath!, fillPaint(palette.lane.withValues(alpha: 0.55)));
+  canvas.restore();
 
   // 弹坑与碎石：固定伪随机，滚动时不会闪烁。
+  final risePeriod = size.height + 30;
+  final rise = (time * 30) % risePeriod;
   final rubble = fillPaint(palette.rubble);
+  canvas.save();
+  canvas.translate(0, rise - risePeriod);
+  canvas.drawPath(_rubblePath!, rubble);
+  canvas.translate(0, risePeriod);
+  canvas.drawPath(_rubblePath!, rubble);
+  canvas.restore();
+
+  final scorchPeriod = size.height + 80;
+  final scorchShift = (time * 30) % scorchPeriod;
+  final scorch = fillPaint(const Color(0x22000000));
+  canvas.save();
+  canvas.translate(0, scorchShift - scorchPeriod);
+  canvas.drawPath(_scorchPath!, scorch);
+  canvas.translate(0, scorchPeriod);
+  canvas.drawPath(_scorchPath!, scorch);
+  canvas.restore();
+}
+
+const double _dash = 26;
+const double _dashGap = 30;
+
+Size _scrollField = Size.zero;
+Path? _dashPath;
+Path? _lanePath;
+Path? _rubblePath;
+Path? _scorchPath;
+
+/// 生成滚动元素的周期几何；战场尺寸变化时重建一次。
+void _buildScrollPaths(Size size) {
+  _scrollField = size;
+  const period = _dash + _dashGap;
+  final dashes = Path();
+  for (var y = -period; y < size.height + period; y += period) {
+    dashes.addRect(Rect.fromLTWH(size.width / 2 - 2.4, y, 4.8, _dash));
+  }
+  _dashPath = dashes;
+
+  final lanes = Path();
+  for (final x in [_roofWidth + 34, size.width - _roofWidth - 34]) {
+    for (var y = -40.0; y < size.height + 70; y += 70) {
+      lanes.addRect(Rect.fromLTWH(x, y, 1.6, 22));
+    }
+  }
+  _lanePath = lanes;
+
+  final rubble = Path();
   for (var i = 0; i < 14; i++) {
     final seed = i * 73.7;
     final baseY = (seed * 13) % size.height;
-    final y = (baseY + time * 30) % (size.height + 30) - 15;
     final x = 46 + (seed * 7) % (size.width - 92);
-    final radius = 1.4 + (seed % 3);
-    canvas.drawCircle(Offset(x, y), radius, rubble);
-  }
-  final scorch = fillPaint(const Color(0x22000000));
-  for (var i = 0; i < 4; i++) {
-    final y = ((i * 137.0) + time * 30) % (size.height + 80) - 40;
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(70 + i * 55, y), width: 34, height: 18),
-      scorch,
+    rubble.addOval(
+      Rect.fromCircle(
+        center: Offset(x, baseY - 15),
+        radius: 1.4 + (seed % 3),
+      ),
     );
   }
+  _rubblePath = rubble;
+
+  final scorch = Path();
+  for (var i = 0; i < 4; i++) {
+    scorch.addOval(
+      Rect.fromCenter(
+        center: Offset(70 + i * 55, i * 137.0 - 40),
+        width: 34,
+        height: 18,
+      ),
+    );
+  }
+  _scorchPath = scorch;
 }
 
 /// 探照灯外接范围：缓存位图时按这个矩形取图，摆动只做平移。

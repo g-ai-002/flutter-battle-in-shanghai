@@ -109,13 +109,20 @@ void paintSoldier(
   canvas.restore();
 }
 
-/// 装甲车：横向车身、履带与朝下的炮管。
-void paintArmoredCar(
+/// 装甲车精灵的外接范围与基准半径：位图按这个矩形录制，绘制时按半径缩放。
+/// 矩形比车体各边多留 1 个单位，避免贴图边缘被过滤采样切掉抗锯齿。
+const double kArmoredCarArtRadius = 20;
+const Rect kArmoredCarArtBounds = Rect.fromLTRB(-22, -14.5, 22, 15.5);
+
+/// 头目精灵的外接范围与基准半径。
+const double kBossArtRadius = 30;
+const Rect kBossArtBounds = Rect.fromLTRB(-34, -24, 34, 24.5);
+
+/// 装甲车车身：阴影、履带、车轮、车身与炮塔，整局不变。
+void paintArmoredCarBody(
   Canvas canvas,
   Offset center, {
   required double radius,
-  double flash = 0,
-  double time = 0,
 }) {
   final s = radius / 20;
   canvas.save();
@@ -177,31 +184,43 @@ void paintArmoredCar(
     Rect.fromLTWH(-1.2 * s, 3 * s, 2.4 * s, 12 * s),
     fillPaint(const Color(0xFF2E2D24)),
   );
-  // 车灯
-  final lamp = 0.4 + 0.25 * math.sin(time * 5);
-  canvas.drawCircle(
-    Offset(-13 * s, 9 * s),
-    1.5 * s,
-    fillPaint(const Color(0xFFFFD9A0).withValues(alpha: lamp)),
-  );
-  if (flash > 0) {
-    canvas.drawCircle(
-      Offset.zero,
-      20 * s,
-      fillPaint(Colors.white.withValues(alpha: flash * 0.35)),
-    );
-  }
   canvas.restore();
 }
 
-/// 头目：加厚的双炮塔战车，带警示灯。
-void paintBoss(
-  Canvas canvas,
-  Offset center, {
+/// 车灯：缓慢明灭，单独绘制以免整台车逐帧重画。
+void paintArmoredCarLamp(
+  Canvas canvas, {
+  required Offset center,
   required double radius,
-  double flash = 0,
   double time = 0,
 }) {
+  final s = radius / 20;
+  final lamp = 0.4 + 0.25 * math.sin(time * 5);
+  canvas.drawCircle(
+    Offset(center.dx - 13 * s, center.dy + 9 * s),
+    1.5 * s,
+    fillPaint(const Color(0xFFFFD9A0).withValues(alpha: lamp)),
+  );
+}
+
+/// 受击白闪：铺在整车之上。
+void paintArmoredCarFlash(
+  Canvas canvas, {
+  required Offset center,
+  required double radius,
+  double flash = 0,
+}) {
+  if (flash <= 0) return;
+  final s = radius / 20;
+  canvas.drawCircle(
+    center,
+    20 * s,
+    fillPaint(Colors.white.withValues(alpha: flash * 0.35)),
+  );
+}
+
+/// 头目车身：履带、车轮、铆钉与双炮塔，整局不变。
+void paintBossBody(Canvas canvas, Offset center, {required double radius}) {
   final s = radius / 30;
   canvas.save();
   canvas.translate(center.dx, center.dy);
@@ -255,19 +274,37 @@ void paintBoss(
       fillPaint(const Color(0xFF302C23)),
     );
   }
-  // 警示灯
+  canvas.restore();
+}
+
+/// 头目的警示灯：闪烁节奏单独绘制。
+void paintBossBeacon(
+  Canvas canvas, {
+  required Offset center,
+  required double radius,
+  double time = 0,
+}) {
+  final s = radius / 30;
   final blink = 0.45 + 0.4 * math.sin(time * 6).abs();
   canvas.drawCircle(
-    Offset(0, -14 * s),
+    Offset(center.dx, center.dy - 14 * s),
     2.6 * s,
     fillPaint(const Color(0xFFFF5A3C).withValues(alpha: blink)),
   );
-  if (flash > 0) {
-    canvas.drawCircle(
-      Offset.zero,
-      30 * s,
-      fillPaint(Colors.white.withValues(alpha: flash * 0.3)),
-    );
-  }
-  canvas.restore();
+}
+
+/// 头目受击白闪。
+void paintBossFlash(
+  Canvas canvas, {
+  required Offset center,
+  required double radius,
+  double flash = 0,
+}) {
+  if (flash <= 0) return;
+  final s = radius / 30;
+  canvas.drawCircle(
+    center,
+    30 * s,
+    fillPaint(Colors.white.withValues(alpha: flash * 0.3)),
+  );
 }
