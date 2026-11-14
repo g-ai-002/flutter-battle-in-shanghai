@@ -61,8 +61,12 @@ class ScenePalette {
     ember: Color(0xFFFFA24A),
     rubble: Color(0xFF4A3A2B),
   );
+}
 
-  static const ScenePalette bund = ScenePalette(
+/// 阵地配色表：新增阵地只在这里补一行，不必再写分支。
+const Map<BattleScene, ScenePalette> scenePalettes = {
+  BattleScene.zhabei: ScenePalette.zhabei,
+  BattleScene.bund: ScenePalette(
     id: 2,
     roadTop: Color(0xFF262A31),
     roadBottom: Color(0xFF13161A),
@@ -75,9 +79,8 @@ class ScenePalette {
     beam: Color(0xFFCFE4FF),
     ember: Color(0xFFFFB870),
     rubble: Color(0xFF3D444C),
-  );
-
-  static const ScenePalette warehouse = ScenePalette(
+  ),
+  BattleScene.warehouse: ScenePalette(
     id: 3,
     roadTop: Color(0xFF3A2620),
     roadBottom: Color(0xFF1C1210),
@@ -90,9 +93,8 @@ class ScenePalette {
     beam: Color(0xFFFFD2A0),
     ember: Color(0xFFFF8C4A),
     rubble: Color(0xFF52382C),
-  );
-
-  static const ScenePalette suzhou = ScenePalette(
+  ),
+  BattleScene.suzhou: ScenePalette(
     id: 4,
     roadTop: Color(0xFF232C2D),
     roadBottom: Color(0xFF0F1516),
@@ -105,12 +107,7 @@ class ScenePalette {
     beam: Color(0xFFD6EDF2),
     ember: Color(0xFFFFA65A),
     rubble: Color(0xFF374442),
-  );
-}
-
-ScenePalette paletteOf(BattleScene scene) => switch (scene) {
-  BattleScene.zhabei => ScenePalette.zhabei,
-  BattleScene.bund => ScenePalette.bund,
-  BattleScene.warehouse => ScenePalette.warehouse,
-  BattleScene.suzhou => ScenePalette.suzhou,
+  ),
 };
+
+ScenePalette paletteOf(BattleScene scene) => scenePalettes[scene]!;

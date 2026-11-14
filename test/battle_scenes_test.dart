@@ -6,20 +6,19 @@ import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/game/battle_config.dart';
 import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/battle_sim.dart';
+import 'package:battle_in_shanghai/game/boss_patterns.dart';
 import 'package:battle_in_shanghai/game/campaign_waves.dart';
 import 'package:battle_in_shanghai/providers/settings_provider.dart';
 import 'package:battle_in_shanghai/services/storage_service.dart';
 import 'package:battle_in_shanghai/theme/scene_palette.dart';
+import 'package:battle_in_shanghai/theme/scene_props.dart';
 import 'package:battle_in_shanghai/utils/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Uint8List> _renderBase(BattleScene scene) async {
-  final cache = SceneCache(
-    palette: paletteOf(scene),
-    scene: scene,
-  )..ensure();
+  final cache = SceneCache(scene: scene)..ensure();
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   cache.drawBase(canvas);
@@ -67,6 +66,30 @@ void main() {
         expect(scales[i], greaterThan(scales[i - 1]));
       }
     });
+
+    test('每处阵地都有配色、景物绘制器与头目弹幕表项', () {
+      for (final scene in BattleScene.values) {
+        expect(scenePalettes.containsKey(scene), isTrue, reason: scene.label);
+        expect(
+          scenePropsPainters.containsKey(scene),
+          isTrue,
+          reason: scene.label,
+        );
+        expect(bossKits.containsKey(scene), isTrue, reason: scene.label);
+      }
+      expect(
+        scenePalettes.values.map((palette) => palette.id).toSet(),
+        hasLength(BattleScene.values.length),
+      );
+    });
+
+    test('静态图层缓存按阵地取配色', () {
+      for (final scene in BattleScene.values) {
+        final cache = SceneCache(scene: scene);
+        expect(cache.palette, same(paletteOf(scene)), reason: scene.label);
+        cache.dispose();
+      }
+    });
   });
 
   group('关卡波次', () {
@@ -76,8 +99,9 @@ void main() {
         expect(waves, hasLength(kCampaignWaves), reason: scene.label);
         expect(waves.last.boss, isTrue, reason: scene.label);
         expect(waves.last.hpMultiplier, scene.hpScale);
-        for (final wave in waves.take(waves.length - 1)) {
-          expect(wave.boss, isFalse, reason: scene.label);
+        for (var i = 0; i < waves.length; i++) {
+          expect(waves[i].index, i + 1, reason: scene.label);
+          expect(waves[i].boss, i == waves.length - 1, reason: scene.label);
         }
       }
     });
@@ -211,7 +235,8 @@ void main() {
         expect(
           images[i],
           isNot(equals(images[j])),
-          reason: '${BattleScene.values[i].label} vs ${BattleScene.values[j].label}',
+          reason:
+              '${BattleScene.values[i].label} vs ${BattleScene.values[j].label}',
         );
       }
     }

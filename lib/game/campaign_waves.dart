@@ -29,12 +29,12 @@ List<WavePlan> sceneWaves(
 List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
   final book = _WaveBook(builder, hp);
 
-  builder.line(EnemyKind.infantry, 6, 0.2, 0.55);
-  final waves = <WavePlan>[book.next(1, name: '前哨试探')];
+  book.line(EnemyKind.infantry, 6, 0.2, 0.55);
+  book.wave('前哨试探');
 
-  builder.line(EnemyKind.infantry, 3, 0.2, 0.5, fromX: 40, toX: 56);
-  builder.line(EnemyKind.infantry, 3, 0.45, 0.5, fromX: 244, toX: 260);
-  builder.line(
+  book.line(EnemyKind.infantry, 3, 0.2, 0.5, fromX: 40, toX: 56);
+  book.line(EnemyKind.infantry, 3, 0.45, 0.5, fromX: 244, toX: 260);
+  book.line(
     EnemyKind.rifleman,
     2,
     2.6,
@@ -44,13 +44,13 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 80,
     holdMax: 140,
   );
-  builder.add(EnemyKind.raider, 3.2, 54);
-  builder.add(EnemyKind.raider, 3.6, 246);
-  waves.add(book.next(2, name: '两翼夹击'));
+  book.add(EnemyKind.raider, 3.2, 54);
+  book.add(EnemyKind.raider, 3.6, 246);
+  book.wave('两翼夹击');
 
-  builder.line(EnemyKind.infantry, 5, 0.6, 0.5, fromX: 60, toX: 240);
-  builder.add(EnemyKind.shield, 0.8, 150);
-  builder.line(
+  book.line(EnemyKind.infantry, 5, 0.6, 0.5, fromX: 60, toX: 240);
+  book.add(EnemyKind.shield, 0.8, 150);
+  book.line(
     EnemyKind.rifleman,
     4,
     0.3,
@@ -60,7 +60,7 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 66,
     holdMax: 130,
   );
-  builder.line(
+  book.line(
     EnemyKind.grenadier,
     2,
     2.2,
@@ -70,12 +70,12 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 100,
     holdMax: 150,
   );
-  waves.add(book.next(3, name: '火力压制'));
+  book.wave('火力压制');
 
-  builder.line(EnemyKind.infantry, 6, 0.2, 0.42);
-  builder.add(EnemyKind.armoredCar, 1.0, 92, holdY: 82);
-  builder.add(EnemyKind.armoredCar, 2.4, 208, holdY: 82);
-  builder.line(
+  book.line(EnemyKind.infantry, 6, 0.2, 0.42);
+  book.add(EnemyKind.armoredCar, 1.0, 92, holdY: 82);
+  book.add(EnemyKind.armoredCar, 2.4, 208, holdY: 82);
+  book.line(
     EnemyKind.rifleman,
     2,
     2.0,
@@ -85,7 +85,7 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 72,
     holdMax: 120,
   );
-  builder.line(
+  book.line(
     EnemyKind.grenadier,
     2,
     3.4,
@@ -95,28 +95,28 @@ List<WavePlan> _zhabeiWaves(WaveBuilder builder, double hp) {
     holdMin: 108,
     holdMax: 150,
   );
-  waves.add(book.next(4, name: '装甲突袭'));
+  book.wave('装甲突袭');
 
-  builder.add(EnemyKind.infantry, 0.2, 60);
-  builder.add(EnemyKind.rifleman, 0.6, 240, holdY: 96);
-  builder.add(EnemyKind.infantry, 1.0, 240);
-  builder.add(EnemyKind.grenadier, 1.4, 190, holdY: 118);
-  builder.add(EnemyKind.raider, 0.8, 96);
-  builder.add(EnemyKind.raider, 1.0, 204);
-  builder.add(EnemyKind.boss, 2.6, 150, holdY: 78);
-  waves.add(book.next(5, name: '头目决战', boss: true));
-  return waves;
+  book.add(EnemyKind.infantry, 0.2, 60);
+  book.add(EnemyKind.rifleman, 0.6, 240, holdY: 96);
+  book.add(EnemyKind.infantry, 1.0, 240);
+  book.add(EnemyKind.grenadier, 1.4, 190, holdY: 118);
+  book.add(EnemyKind.raider, 0.8, 96);
+  book.add(EnemyKind.raider, 1.0, 204);
+  book.add(EnemyKind.boss, 2.6, 150, holdY: 78);
+  book.wave('头目决战', boss: true);
+  return book.waves;
 }
 
 /// 外滩：江岸开阔，步兵散得更开，远处楼顶的枪手先发制人。
 List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
   final book = _WaveBook(builder, hp);
 
-  builder.line(EnemyKind.infantry, 7, 0.2, 0.45, fromX: 36, toX: 264);
-  builder.add(EnemyKind.rifleman, 3.0, 150, holdY: 112);
-  final waves = <WavePlan>[book.next(1, name: '江岸登陆')];
+  book.line(EnemyKind.infantry, 7, 0.2, 0.45, fromX: 36, toX: 264);
+  book.add(EnemyKind.rifleman, 3.0, 150, holdY: 112);
+  book.wave('江岸登陆');
 
-  builder.line(
+  book.line(
     EnemyKind.rifleman,
     4,
     0.3,
@@ -126,7 +126,7 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMin: 64,
     holdMax: 108,
   );
-  builder.line(
+  book.line(
     EnemyKind.rifleman,
     2,
     2.4,
@@ -136,11 +136,11 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMin: 112,
     holdMax: 150,
   );
-  builder.line(EnemyKind.infantry, 4, 0.6, 0.6, fromX: 70, toX: 230);
-  waves.add(book.next(2, name: '楼顶狙击'));
+  book.line(EnemyKind.infantry, 4, 0.6, 0.6, fromX: 70, toX: 230);
+  book.wave('楼顶狙击');
 
-  builder.line(EnemyKind.rifleman, 4, 0.2, 0.65, holdMin: 70, holdMax: 124);
-  builder.line(
+  book.line(EnemyKind.rifleman, 4, 0.2, 0.65, holdMin: 70, holdMax: 124);
+  book.line(
     EnemyKind.grenadier,
     3,
     1.6,
@@ -150,14 +150,14 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMin: 100,
     holdMax: 146,
   );
-  builder.line(EnemyKind.infantry, 5, 0.4, 0.5, fromX: 60, toX: 240);
-  builder.add(EnemyKind.shield, 1.0, 150);
-  waves.add(book.next(3, name: '交叉火力'));
+  book.line(EnemyKind.infantry, 5, 0.4, 0.5, fromX: 60, toX: 240);
+  book.add(EnemyKind.shield, 1.0, 150);
+  book.wave('交叉火力');
 
-  builder.add(EnemyKind.armoredCar, 0.8, 84, holdY: 84);
-  builder.add(EnemyKind.armoredCar, 2.6, 216, holdY: 84);
-  builder.line(EnemyKind.infantry, 6, 0.2, 0.4);
-  builder.line(
+  book.add(EnemyKind.armoredCar, 0.8, 84, holdY: 84);
+  book.add(EnemyKind.armoredCar, 2.6, 216, holdY: 84);
+  book.line(EnemyKind.infantry, 6, 0.2, 0.4);
+  book.line(
     EnemyKind.rifleman,
     2,
     2.0,
@@ -167,32 +167,32 @@ List<WavePlan> _bundWaves(WaveBuilder builder, double hp) {
     holdMin: 78,
     holdMax: 116,
   );
-  waves.add(book.next(4, name: '铁甲巡江'));
+  book.wave('铁甲巡江');
 
-  builder.add(EnemyKind.infantry, 0.2, 56);
-  builder.add(EnemyKind.infantry, 0.7, 244);
-  builder.add(EnemyKind.rifleman, 1.0, 240, holdY: 92);
-  builder.add(EnemyKind.grenadier, 1.6, 176, holdY: 116);
-  builder.add(EnemyKind.shield, 1.2, 120);
-  builder.add(EnemyKind.raider, 0.6, 60);
-  builder.add(EnemyKind.raider, 0.9, 240);
-  builder.add(EnemyKind.boss, 2.8, 150, holdY: 76);
-  waves.add(book.next(5, name: '租界头目', boss: true));
-  return waves;
+  book.add(EnemyKind.infantry, 0.2, 56);
+  book.add(EnemyKind.infantry, 0.7, 244);
+  book.add(EnemyKind.rifleman, 1.0, 240, holdY: 92);
+  book.add(EnemyKind.grenadier, 1.6, 176, holdY: 116);
+  book.add(EnemyKind.shield, 1.2, 120);
+  book.add(EnemyKind.raider, 0.6, 60);
+  book.add(EnemyKind.raider, 0.9, 240);
+  book.add(EnemyKind.boss, 2.8, 150, holdY: 76);
+  book.wave('租界头目', boss: true);
+  return book.waves;
 }
 
 /// 四行仓库：两路纵队贴着砖墙压上，正面几乎没有空隙。
 List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
   final book = _WaveBook(builder, hp);
 
-  builder.line(EnemyKind.infantry, 4, 0.2, 0.45, fromX: 58, toX: 100);
-  builder.line(EnemyKind.infantry, 4, 0.3, 0.45, fromX: 200, toX: 242);
-  final waves = <WavePlan>[book.next(1, name: '仓库外围')];
+  book.line(EnemyKind.infantry, 4, 0.2, 0.45, fromX: 58, toX: 100);
+  book.line(EnemyKind.infantry, 4, 0.3, 0.45, fromX: 200, toX: 242);
+  book.wave('仓库外围');
 
-  builder.line(EnemyKind.infantry, 6, 0.2, 0.42, fromX: 56, toX: 244);
-  builder.add(EnemyKind.raider, 1.6, 58);
-  builder.add(EnemyKind.raider, 1.9, 242);
-  builder.line(
+  book.line(EnemyKind.infantry, 6, 0.2, 0.42, fromX: 56, toX: 244);
+  book.add(EnemyKind.raider, 1.6, 58);
+  book.add(EnemyKind.raider, 1.9, 242);
+  book.line(
     EnemyKind.grenadier,
     3,
     1.4,
@@ -202,7 +202,7 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 96,
     holdMax: 140,
   );
-  builder.line(
+  book.line(
     EnemyKind.rifleman,
     2,
     2.2,
@@ -212,10 +212,10 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 78,
     holdMax: 120,
   );
-  waves.add(book.next(2, name: '断墙死守'));
+  book.wave('断墙死守');
 
-  builder.line(EnemyKind.infantry, 7, 0.2, 0.34, fromX: 50, toX: 250);
-  builder.line(
+  book.line(EnemyKind.infantry, 7, 0.2, 0.34, fromX: 50, toX: 250);
+  book.line(
     EnemyKind.rifleman,
     5,
     0.4,
@@ -225,15 +225,15 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 68,
     holdMax: 126,
   );
-  builder.add(EnemyKind.grenadier, 2.8, 150, holdY: 132);
-  waves.add(book.next(3, name: '火线压制'));
+  book.add(EnemyKind.grenadier, 2.8, 150, holdY: 132);
+  book.wave('火线压制');
 
-  builder.add(EnemyKind.armoredCar, 0.6, 80, holdY: 82);
-  builder.add(EnemyKind.armoredCar, 1.8, 150, holdY: 78);
-  builder.add(EnemyKind.armoredCar, 3.0, 220, holdY: 82);
-  builder.line(EnemyKind.infantry, 5, 0.2, 0.45);
-  builder.add(EnemyKind.shield, 1.2, 150);
-  builder.line(
+  book.add(EnemyKind.armoredCar, 0.6, 80, holdY: 82);
+  book.add(EnemyKind.armoredCar, 1.8, 150, holdY: 78);
+  book.add(EnemyKind.armoredCar, 3.0, 220, holdY: 82);
+  book.line(EnemyKind.infantry, 5, 0.2, 0.45);
+  book.add(EnemyKind.shield, 1.2, 150);
+  book.line(
     EnemyKind.grenadier,
     2,
     2.2,
@@ -243,83 +243,84 @@ List<WavePlan> _warehouseWaves(WaveBuilder builder, double hp) {
     holdMin: 104,
     holdMax: 148,
   );
-  waves.add(book.next(4, name: '坦克围城'));
+  book.wave('坦克围城');
 
-  builder.add(EnemyKind.infantry, 0.2, 52);
-  builder.add(EnemyKind.infantry, 0.5, 248);
-  builder.add(EnemyKind.infantry, 0.8, 90);
-  builder.add(EnemyKind.infantry, 1.1, 210);
-  builder.add(EnemyKind.rifleman, 1.4, 244, holdY: 90);
-  builder.add(EnemyKind.raider, 0.7, 56);
-  builder.add(EnemyKind.raider, 0.9, 244);
-  builder.add(EnemyKind.shield, 2.0, 150);
-  builder.add(EnemyKind.boss, 2.4, 150, holdY: 74);
-  waves.add(book.next(5, name: '最终突围', boss: true));
-  return waves;
+  book.add(EnemyKind.infantry, 0.2, 52);
+  book.add(EnemyKind.infantry, 0.5, 248);
+  book.add(EnemyKind.infantry, 0.8, 90);
+  book.add(EnemyKind.infantry, 1.1, 210);
+  book.add(EnemyKind.rifleman, 1.4, 244, holdY: 90);
+  book.add(EnemyKind.raider, 0.7, 56);
+  book.add(EnemyKind.raider, 0.9, 244);
+  book.add(EnemyKind.shield, 2.0, 150);
+  book.add(EnemyKind.boss, 2.4, 150, holdY: 74);
+  book.wave('最终突围', boss: true);
+  return book.waves;
 }
 
 /// 苏州河：铁桥狭窄，正面压力最重，两侧钢梁后还藏着枪手。
 List<WavePlan> _suzhouWaves(WaveBuilder builder, double hp) {
   final book = _WaveBook(builder, hp);
 
-  builder.line(EnemyKind.infantry, 7, 0.2, 0.42, fromX: 48, toX: 252);
-  builder.line(
-    EnemyKind.rifleman, 3, 1.6, 1.1,
-    fromX: 72, toX: 228, holdMin: 72, holdMax: 126,
-  );
-  final waves = <WavePlan>[book.next(1, name: '桥头遭遇')];
+  book.line(EnemyKind.infantry, 7, 0.2, 0.42, fromX: 48, toX: 252);
+  book.line(EnemyKind.rifleman, 3, 1.6, 1.1,
+      fromX: 72, toX: 228, holdMin: 72, holdMax: 126);
+  book.wave('桥头遭遇');
 
-  builder.line(
-    EnemyKind.rifleman, 5, 0.2, 0.55,
-    fromX: 56, toX: 244, holdMin: 64, holdMax: 120,
-  );
-  builder.add(EnemyKind.shield, 0.6, 96);
-  builder.add(EnemyKind.shield, 1.1, 204);
-  builder.line(EnemyKind.infantry, 4, 0.4, 0.5, fromX: 60, toX: 240);
-  waves.add(book.next(2, name: '铁桥封锁'));
+  book.line(EnemyKind.rifleman, 5, 0.2, 0.55,
+      fromX: 56, toX: 244, holdMin: 64, holdMax: 120);
+  book.add(EnemyKind.shield, 0.6, 96);
+  book.add(EnemyKind.shield, 1.1, 204);
+  book.line(EnemyKind.infantry, 4, 0.4, 0.5, fromX: 60, toX: 240);
+  book.wave('铁桥封锁');
 
-  builder.line(
-    EnemyKind.grenadier, 3, 0.4, 0.9,
-    fromX: 88, toX: 212, holdMin: 98, holdMax: 142,
-  );
-  builder.add(EnemyKind.armoredCar, 1.0, 88, holdY: 80);
-  builder.add(EnemyKind.armoredCar, 2.8, 212, holdY: 80);
-  builder.line(EnemyKind.infantry, 5, 0.2, 0.46);
-  waves.add(book.next(3, name: '河面炮火'));
+  book.line(EnemyKind.grenadier, 3, 0.4, 0.9,
+      fromX: 88, toX: 212, holdMin: 98, holdMax: 142);
+  book.add(EnemyKind.armoredCar, 1.0, 88, holdY: 80);
+  book.add(EnemyKind.armoredCar, 2.8, 212, holdY: 80);
+  book.line(EnemyKind.infantry, 5, 0.2, 0.46);
+  book.wave('河面炮火');
 
-  builder.add(EnemyKind.armoredCar, 0.6, 82, holdY: 78);
-  builder.add(EnemyKind.armoredCar, 2.4, 218, holdY: 78);
-  builder.line(EnemyKind.shield, 2, 0.8, 0.9, fromX: 104, toX: 196);
-  builder.line(EnemyKind.raider, 2, 0.4, 0.55, fromX: 54, toX: 246);
-  builder.add(EnemyKind.grenadier, 2.4, 150, holdY: 120);
-  waves.add(book.next(4, name: '装甲登陆'));
+  book.add(EnemyKind.armoredCar, 0.6, 82, holdY: 78);
+  book.add(EnemyKind.armoredCar, 2.4, 218, holdY: 78);
+  book.line(EnemyKind.shield, 2, 0.8, 0.9, fromX: 104, toX: 196);
+  book.line(EnemyKind.raider, 2, 0.4, 0.55, fromX: 54, toX: 246);
+  book.add(EnemyKind.grenadier, 2.4, 150, holdY: 120);
+  book.wave('装甲登陆');
 
-  builder.add(EnemyKind.infantry, 0.2, 50);
-  builder.add(EnemyKind.infantry, 0.5, 250);
-  builder.add(EnemyKind.raider, 0.8, 72);
-  builder.add(EnemyKind.raider, 1.0, 228);
-  builder.add(EnemyKind.rifleman, 1.2, 244, holdY: 92);
-  builder.add(EnemyKind.rifleman, 1.5, 56, holdY: 92);
-  builder.add(EnemyKind.shield, 1.8, 110);
-  builder.add(EnemyKind.shield, 2.0, 190);
-  builder.add(EnemyKind.grenadier, 2.2, 150, holdY: 120);
-  builder.add(EnemyKind.boss, 2.6, 150, holdY: 72);
-  waves.add(book.next(5, name: '桥心决战', boss: true));
-  return waves;
+  book.add(EnemyKind.infantry, 0.2, 50);
+  book.add(EnemyKind.infantry, 0.5, 250);
+  book.add(EnemyKind.raider, 0.8, 72);
+  book.add(EnemyKind.raider, 1.0, 228);
+  book.add(EnemyKind.rifleman, 1.2, 244, holdY: 92);
+  book.add(EnemyKind.rifleman, 1.5, 56, holdY: 92);
+  book.add(EnemyKind.shield, 1.8, 110);
+  book.add(EnemyKind.shield, 2.0, 190);
+  book.add(EnemyKind.grenadier, 2.2, 150, holdY: 120);
+  book.add(EnemyKind.boss, 2.6, 150, holdY: 72);
+  book.wave('桥心决战', boss: true);
+  return book.waves;
 }
 
-/// 把当前排好的刷怪点封成一波，四处阵地共用同一套写法。
+/// 把排好的刷怪点封成一波：波次序号自动递增，四处阵地共用同一套写法。
 class _WaveBook {
-  const _WaveBook(this.builder, this.hp);
+  _WaveBook(this.builder, this.hp);
 
   final WaveBuilder builder;
   final double hp;
+  final List<WavePlan> waves = [];
 
-  WavePlan next(int index, {String name = '', bool boss = false}) => WavePlan(
-    index: index,
-    name: name,
-    boss: boss,
-    hpMultiplier: hp,
-    orders: builder.flush(),
-  );
+  void add(EnemyKind kind, double at, double x, {double holdY = 0}) =>
+      builder.add(kind, at, x, holdY: holdY);
+
+  void line(EnemyKind kind, int count, double start, double gap,
+          {double fromX = 46, double toX = 254,
+          double holdMin = 0, double holdMax = 0}) =>
+      builder.line(kind, count, start, gap,
+          fromX: fromX, toX: toX, holdMin: holdMin, holdMax: holdMax);
+
+  void wave(String name, {bool boss = false}) => waves.add(WavePlan(
+        index: waves.length + 1, name: name, boss: boss,
+        hpMultiplier: hp, orders: builder.flush(),
+      ));
 }

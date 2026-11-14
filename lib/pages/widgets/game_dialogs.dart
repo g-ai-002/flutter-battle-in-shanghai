@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../game/battle_config.dart';
+import '../../game/battle_scenes.dart';
 import '../../game/battle_sim.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/formatters.dart';
@@ -207,8 +208,10 @@ Future<void> showRulesDialog(BuildContext context) {
           '空袭轰炸敌军最密集处，落点先有预警圈。\n'
           '· 枪手与掷弹兵停下开火，刀锋兵冲锋快，盾牌兵挡正面子弹，'
           '装甲车皮厚，头目弹幕各不相同。\n'
-          '· 急救包回血、弹药箱提供冲锋枪或霰弹枪、钢盔提供 6 秒护盾。\n'
-          '· 四处阵地依次解锁：闸北、外滩、四行仓库、苏州河；'
+          '· 急救包回血、弹药箱提供冲锋枪或霰弹枪、'
+          '钢盔提供 $kPlayerMaxShieldSeconds 秒护盾。\n'
+          '· ${BattleScene.values.length} 处阵地依次解锁：'
+          '${BattleScene.values.map((scene) => scene.label).join('、')}；'
           '连击最高 3 倍，清波与击破头目都有额外奖励。',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.7),
         ),

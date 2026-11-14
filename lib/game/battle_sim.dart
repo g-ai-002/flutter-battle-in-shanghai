@@ -463,11 +463,12 @@ class BattleSim {
   }
 
   void _bossAttack(EnemyUnit enemy, double damageScale) {
+    final kit = bossKits[scene]!;
     switch (enemy.pattern % 4) {
       case 0:
-        _fireFan(enemy, bossFans[scene]!, damageScale);
+        _fireFan(enemy, kit.fan, damageScale);
       case 1:
-        final aimed = bossAimed[scene]!;
+        final aimed = kit.aimed;
         for (var i = 0; i < aimed.count; i++) {
           _shootAt(
             enemy,
@@ -481,7 +482,7 @@ class BattleSim {
           );
         }
       case 2:
-        final summon = bossSummons[scene]!;
+        final summon = kit.summon;
         for (var i = 0; i < summon.count; i++) {
           _addEnemy(
             summon.kind,
@@ -493,7 +494,7 @@ class BattleSim {
         }
         _feedback.cue(BattleCue.enemyShot);
       default:
-        final direct = bossDirects[scene];
+        final direct = kit.direct;
         if (direct != null) {
           _shootAt(
             enemy,
@@ -505,7 +506,7 @@ class BattleSim {
             color: kBossHeavyColor,
           );
         } else {
-          final bomb = bossBombards[scene]!;
+          final bomb = kit.bombard!;
           hazards.add(
             GrenadeHazard(
               fromX: enemy.x,

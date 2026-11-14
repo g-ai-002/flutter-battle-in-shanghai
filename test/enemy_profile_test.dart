@@ -138,17 +138,20 @@ void main() {
   group('头目弹幕表', () {
     test('四处阵地都有扇形、齐射、增援与一种重火力', () {
       for (final scene in BattleScene.values) {
-        expect(bossFans[scene]!.count, greaterThan(1), reason: scene.label);
-        expect(bossAimed[scene]!.count, greaterThan(1), reason: scene.label);
-        expect(bossSummons[scene]!.count, greaterThan(0), reason: scene.label);
-        final hasDirect = bossDirects.containsKey(scene);
-        final hasBomb = bossBombards.containsKey(scene);
-        expect(hasDirect != hasBomb, isTrue, reason: scene.label);
+        final kit = bossKits[scene]!;
+        expect(kit.fan.count, greaterThan(1), reason: scene.label);
+        expect(kit.aimed.count, greaterThan(1), reason: scene.label);
+        expect(kit.summon.count, greaterThan(0), reason: scene.label);
+        expect(
+          (kit.direct == null) != (kit.bombard == null),
+          isTrue,
+          reason: scene.label,
+        );
       }
-      expect(bossSummons[BattleScene.zhabei]!.kind, EnemyKind.infantry);
-      expect(bossSummons[BattleScene.bund]!.kind, EnemyKind.rifleman);
-      expect(bossSummons[BattleScene.warehouse]!.kind, EnemyKind.raider);
-      expect(bossSummons[BattleScene.suzhou]!.kind, EnemyKind.rifleman);
+      expect(bossKits[BattleScene.zhabei]!.summon.kind, EnemyKind.infantry);
+      expect(bossKits[BattleScene.bund]!.summon.kind, EnemyKind.rifleman);
+      expect(bossKits[BattleScene.warehouse]!.summon.kind, EnemyKind.raider);
+      expect(bossKits[BattleScene.suzhou]!.summon.kind, EnemyKind.rifleman);
     });
 
     test('闸北重炮直射，其余阵地的炮击按表取值', () {
@@ -168,7 +171,7 @@ void main() {
         sim.enemies.add(boss()..pattern = 3);
         sim.update(1 / 60);
         final bomb = sim.hazards.single;
-        final expected = bossBombards[scene]!;
+        final expected = bossKits[scene]!.bombard!;
         expect(bomb.kind, HazardKind.bomb, reason: scene.label);
         expect(bomb.duration, closeTo(expected.fuse, 0.001));
         expect(bomb.radius, expected.radius);
@@ -190,7 +193,10 @@ void main() {
       final shooter = boss()..pattern = 0;
       firing.enemies.add(shooter);
       firing.update(1 / 60);
-      expect(firing.enemyShots, hasLength(bossFans[BattleScene.zhabei]!.count));
+      expect(
+        firing.enemyShots,
+        hasLength(bossKits[BattleScene.zhabei]!.fan.count),
+      );
       expect(shooter.pattern, 1);
       expect(shooter.attackTimer, closeTo(kBossInterval, 0.001));
     });

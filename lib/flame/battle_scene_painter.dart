@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 
 import '../game/battle_sim.dart';
 import '../theme/battle_painting.dart';
-import '../theme/scene_palette.dart';
 import '../utils/constants.dart';
 import 'battle_combat_painter.dart';
 import 'label_cache.dart';
@@ -17,15 +16,12 @@ import 'scene_cache.dart';
 /// 缩放、抖动与生命周期。
 class BattleScenePainter {
   BattleScenePainter({required this.sim, SceneCache? cache})
-    : _palette = cache?.palette ?? paletteOf(sim.scene),
-      _cache =
-          cache ?? SceneCache(palette: paletteOf(sim.scene), scene: sim.scene) {
+    : _cache = cache ?? SceneCache(scene: sim.scene) {
     _combat = BattleCombatPainter(sim: sim, labels: _labels, cache: _cache);
   }
 
   final BattleSim sim;
   final SceneCache _cache;
-  final ScenePalette _palette;
   final BattleLabelCache _labels = BattleLabelCache();
   late final BattleCombatPainter _combat;
 
@@ -50,9 +46,9 @@ class BattleScenePainter {
     _combat.paint(canvas, clock);
     if (_cache.ready) {
       _cache.drawBarricade(canvas);
-      paintBarricadeEmbers(canvas, _field, clock, _palette);
+      paintBarricadeEmbers(canvas, _field, clock, _cache.palette);
     } else {
-      paintBarricade(canvas, _field, clock, _palette);
+      paintBarricade(canvas, _field, clock, _cache.palette);
     }
     _paintAnnouncement(canvas);
 
@@ -76,12 +72,12 @@ class BattleScenePainter {
       _cache.drawRoofs(canvas, clock);
       _cache.drawProps(canvas);
       // 车道线与碎石逐帧滚动，探照灯与街垒贴预渲染好的位图。
-      paintStreetScroll(canvas, _field, clock, _palette);
+      paintStreetScroll(canvas, _field, clock, _cache.palette);
       _cache.drawSearchlight(canvas, clock);
       _cache.drawGlow(canvas, Offset(sim.player.x, sim.player.y - 40));
     } else {
-      paintStreet(canvas, _field, clock, _palette);
-      paintSceneProps(canvas, _field, sim.scene, _palette);
+      paintStreet(canvas, _field, clock, _cache.palette);
+      paintSceneProps(canvas, _field, sim.scene, _cache.palette);
       _paintAmbientLight(canvas);
     }
   }
@@ -91,7 +87,7 @@ class BattleScenePainter {
     final center = Offset(sim.player.x, sim.player.y - 40);
     canvas.save();
     canvas.translate(center.dx, center.dy);
-    paintPlayerGlow(canvas, SceneCache.glowRadius, _palette);
+    paintPlayerGlow(canvas, SceneCache.glowRadius, _cache.palette);
     canvas.restore();
   }
 

@@ -18,10 +18,7 @@ enum _Layer { base, roofs, props, vignette, glow, searchlight, barricade }
 /// 几乎不变，预渲染成位图后每帧只做贴图，省掉重复构建渐变、Path、RRect 与
 /// Paint 的开销。渲染设备不支持位图缓存时 [ready] 为 false，调用方回退到直接绘制。
 class SceneCache {
-  SceneCache({
-    this.palette = ScenePalette.zhabei,
-    this.scene = BattleScene.zhabei,
-  });
+  SceneCache({this.scene = BattleScene.zhabei}) : palette = paletteOf(scene);
 
   static const double _zoom = 2;
   static const double glowRadius = 138;
