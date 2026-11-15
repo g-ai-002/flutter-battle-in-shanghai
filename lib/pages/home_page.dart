@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../game/battle_config.dart';
-import '../models/records.dart';
 import '../providers/settings_provider.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_info.dart';
@@ -18,6 +17,9 @@ import 'widgets/preference_pickers.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  /// 上下留白保持对称，内容块在全屏窗口里严格居中。
+  static const double _verticalPadding = 18;
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
@@ -25,13 +27,11 @@ class HomePage extends StatelessWidget {
     final colors = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
     final entries = _entries(context, settings, colors);
-    // 入口、出战配置与战绩在宽窄布局里顺序一致，只换外层排列。
+    // 入口与出战配置在宽窄布局里顺序一致，只换外层排列。
     final side = <Widget>[
       _EntryGrid(entries: entries),
       const SizedBox(height: 18),
       _Loadout(settings: settings),
-      const SizedBox(height: 14),
-      _StatsLine(records: settings.records),
     ];
 
     return Scaffold(
@@ -55,15 +55,24 @@ class HomePage extends StatelessWidget {
               final horizontal = constraints.maxWidth >= 900 ? 40.0 : 20.0;
               final maxContent = wide ? 1180.0 : 760.0;
               return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(horizontal, 14, horizontal, 24),
+                padding: EdgeInsets.fromLTRB(
+                  horizontal,
+                  _verticalPadding,
+                  horizontal,
+                  _verticalPadding,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: math.max(0, constraints.maxHeight - 38),
+                    minHeight: math.max(
+                      0,
+                      constraints.maxHeight - _verticalPadding * 2,
+                    ),
                   ),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: maxContent),
                       child: Column(
+                        key: const ValueKey('home-content'),
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _TopBar(darkMode: settings.darkMode),
@@ -172,44 +181,11 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.read<SettingsProvider>();
-    final colors = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Container(
-          width: 38,
-          height: 38,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: colors.primary, width: 1.4),
-          ),
-          child: Text(
-            '战',
-            style: TextStyle(
-              fontSize: 19,
-              height: 1,
-              fontWeight: FontWeight.w700,
-              color: colors.primary,
-            ),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              AppConstants.appName,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const Text(
-              'BATTLE IN SHANGHAI',
-              style: TextStyle(
-                fontSize: 8.5,
-                letterSpacing: 1.3,
-                color: Color(0xFFA99C8A),
-              ),
-            ),
-          ],
+        Text(
+          AppConstants.appName,
+          style: Theme.of(context).textTheme.titleSmall,
         ),
         const Spacer(),
         IconButton(
@@ -350,34 +326,3 @@ class _EntryGrid extends StatelessWidget {
     );
   }
 }
-
-/// 首页底部的战绩一行：最高分、最远波次与累计击杀。
-class _StatsLine extends StatelessWidget {
-  const _StatsLine({required this.records});
-
-  final BattleRecords records;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.emoji_events_outlined, size: 15, color: colors.primary),
-        const SizedBox(width: 6),
-        Flexible(
-          child: Text(
-            records.summary,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-

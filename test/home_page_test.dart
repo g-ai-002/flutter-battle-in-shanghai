@@ -129,6 +129,23 @@ void main() {
     expect(settings.darkMode, isFalse);
   });
 
+  testWidgets('全屏窗口下首页内容水平垂直居中', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final storage = await StorageService.instance;
+    final settings = SettingsProvider(storage);
+    await tester.pumpWidget(wrap(settings));
+
+    final content = tester.getRect(
+      find.byKey(const ValueKey('home-content')),
+    );
+    expect(content.center.dx, closeTo(640, 0.5));
+    expect(content.center.dy, closeTo(450, 0.5));
+  });
+
   testWidgets('横屏矮屏入口仍在首屏', (tester) async {
     tester.view.physicalSize = const Size(568, 320);
     tester.view.devicePixelRatio = 1.0;
