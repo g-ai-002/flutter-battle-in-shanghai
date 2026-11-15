@@ -142,7 +142,7 @@ class BattleCombatPainter {
         Offset(hazard.toX, hazard.toY),
         hazard.radius * (0.55 + hazard.progress * 0.45),
         strokePaint(
-          color.withValues(alpha: (bomb ? 0.32 : 0.22) + pulse * 0.35),
+          _tint(color.toARGB32(), (bomb ? 0.32 : 0.22) + pulse * 0.35),
           bomb ? 1.8 : 1.2,
         ),
       );
@@ -316,7 +316,7 @@ class BattleCombatPainter {
       canvas.drawCircle(
         center,
         kPlayerRadius + 7 + math.sin(_clock * 5) * 1.2,
-        strokePaint(const Color(0xFF7FC4E8).withValues(alpha: 0.55), 1.6),
+        strokePaint(_tint(0xFF7FC4E8, 0.55), 1.6),
       );
       canvas.save();
       canvas.translate(center.dx, center.dy);
@@ -409,19 +409,14 @@ class BattleCombatPainter {
             canvas.drawCircle(
               Offset(effect.x, effect.y),
               effect.radius * progress,
-              strokePaint(
-                const Color(0xFFFFD9A0).withValues(alpha: (1 - progress) * 0.5),
-                2.4,
-              ),
+              strokePaint(_tint(0xFFFFD9A0, (1 - progress) * 0.5), 2.4),
             );
           }
         case EffectKind.hit:
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.5 + progress),
-            fillPaint(
-              const Color(0xFFFFF0C0).withValues(alpha: (1 - progress) * 0.85),
-            ),
+            fillPaint(_tint(0xFFFFF0C0, (1 - progress) * 0.85)),
           );
         case EffectKind.muzzle:
           paintMuzzle(
@@ -434,27 +429,19 @@ class BattleCombatPainter {
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (0.4 + progress * 1.4),
-            strokePaint(
-              const Color(0xFFFFD166).withValues(alpha: (1 - progress) * 0.5),
-              1.4,
-            ),
+            strokePaint(_tint(0xFFFFD166, (1 - progress) * 0.5), 1.4),
           );
         case EffectKind.shieldBreak:
           canvas.drawCircle(
             Offset(effect.x, effect.y),
             effect.radius * (1 + progress * 0.6),
-            strokePaint(
-              const Color(0xFF7FC4E8).withValues(alpha: (1 - progress) * 0.8),
-              2,
-            ),
+            strokePaint(_tint(0xFF7FC4E8, (1 - progress) * 0.8), 2),
           );
         case EffectKind.dust:
           canvas.drawCircle(
             Offset(effect.x, effect.y - progress * 6),
             effect.radius * (0.5 + progress * 1.1),
-            fillPaint(
-              const Color(0xFFC0A87C).withValues(alpha: (1 - progress) * 0.3),
-            ),
+            fillPaint(_tint(0xFFC0A87C, (1 - progress) * 0.3)),
           );
         case EffectKind.plane:
           paintAirstrikePlane(
@@ -477,21 +464,23 @@ class BattleCombatPainter {
       );
     }
     _batch.flush(canvas);
-    // 夜空余烬：持续上飘，给静止画面一点空气感；颜色同样按档位复用。
+    // 夜空余烬：位置持续上飘，同色合成一条路径，一次画完。
+    _batch.begin();
     for (var i = 0; i < 10; i++) {
       final seed = i * 37.3;
-      final x = (seed * 11) % Field.width;
-      final y = Field.height - ((seed * 17 + _clock * 26) % Field.height);
-      final twinkle = 0.25 + 0.35 * math.sin(_clock * 2 + i);
-      canvas.drawCircle(
-        Offset(x, y),
+      _batch.dot(
+        _tint(0xFFFFA24A, 0.5),
+        Offset(
+          (seed * 11) % Field.width,
+          Field.height - ((seed * 17 + _clock * 26) % Field.height),
+        ),
         0.8,
-        fillPaint(_tint(0xFFFFA24A, twinkle)),
       );
     }
+    _batch.flush(canvas);
   }
 
-  /// 把透明度量化到固定档位并缓存颜色：碎屑与余烬每帧都在变淡，
+  /// 把透明度量化到固定档位并缓存颜色：碎屑与特效每帧都在变淡，
   /// 但档位有限，同一颜色不会每帧新建对象。
   static const int _tintSteps = 16;
 

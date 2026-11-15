@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'app.dart';
+import 'flame/scene_cache.dart';
 import 'services/log_service.dart';
 import 'services/logging_init.dart';
 import 'services/music_service.dart';
@@ -37,5 +39,11 @@ Future<void> main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(SoundService.init());
     if (MusicService.enabled && !kIsWeb) unawaited(MusicService.start());
+    // 首页静止时预热战场位图与渐变，进入战斗的首帧不再集中创建原生资源。
+    SchedulerBinding.instance.scheduleTask(
+      () => SceneCache.prewarm(storage.scene),
+      Priority.idle,
+      debugLabel: 'prewarm battle scene',
+    );
   });
 }

@@ -7,6 +7,7 @@ import 'package:battle_in_shanghai/flame/battle_scene_painter.dart';
 import 'package:battle_in_shanghai/flame/label_cache.dart';
 import 'package:battle_in_shanghai/flame/scene_cache.dart';
 import 'package:battle_in_shanghai/game/battle_config.dart';
+import 'package:battle_in_shanghai/game/battle_scenes.dart';
 import 'package:battle_in_shanghai/game/battle_sim.dart';
 import 'package:battle_in_shanghai/game/entities.dart';
 import 'package:battle_in_shanghai/theme/battle_painting.dart';
@@ -224,7 +225,12 @@ void main() {
 
   const field = Size(Field.width, Field.height);
 
-  setUp(resetGradientCache);
+  setUp(() {
+    resetGradientCache();
+    SceneCache.resetShared();
+  });
+
+  tearDown(SceneCache.resetShared);
 
   test('滚动街景合批后与逐条绘制逐像素一致', () async {
     for (final time in [0.0, 0.37, 1.2, 3.5, 8.9]) {
@@ -346,6 +352,24 @@ void main() {
     cache.dispose();
   });
 
+  test('首页预热后战斗首帧不再录制静态图层与士兵精灵', () {
+    SceneCache.prewarm(BattleScene.zhabei);
+    final cache = SceneCache.shared(BattleScene.zhabei);
+    expect(cache.ready, isTrue);
+    expect(cache.layerBuilds, SceneCache.layerCount);
+    expect(cache.soldierBuilds, 12);
+
+    final painter = BattleScenePainter(sim: _busySim());
+    painter.prepare();
+    final recorder = ui.PictureRecorder();
+    painter.paint(Canvas(recorder), 1.2);
+    recorder.endRecording().dispose();
+    painter.dispose();
+
+    expect(cache.layerBuilds, SceneCache.layerCount);
+    expect(cache.soldierBuilds, 12);
+  });
+
   test('弹道与碎屑合批后组数远少于实体数', () {
     final sim = _busySim();
     final cache = SceneCache()..ensure();
@@ -374,8 +398,8 @@ void main() {
     }
     canvas.calls = 0;
     painter.paint(canvas, 2);
-    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时约 126 条。
-    expect(canvas.calls, lessThan(135));
+    // 12 名步兵/枪手、装甲车、头目、40 发子弹与 120 颗粒子同屏时 116 条。
+    expect(canvas.calls, lessThan(120));
     painter.dispose();
   });
 }

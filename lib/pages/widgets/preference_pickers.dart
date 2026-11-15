@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import '../../flame/scene_cache.dart';
 import '../../game/battle_config.dart';
 import '../../game/battle_scenes.dart';
 import '../../game/logic_rate.dart';
@@ -44,6 +45,8 @@ class ScenePicker extends StatelessWidget {
       return;
     }
     settings.setScene(scene);
+    // 换阵地后顺手预热新图层，真正开局时不再集中录制位图。
+    SceneCache.prewarm(scene);
   }
 }
 

@@ -20,6 +20,35 @@ enum _Layer { base, roofs, props, vignette, glow, searchlight, barricade }
 class SceneCache {
   SceneCache({this.scene = BattleScene.zhabei}) : palette = paletteOf(scene);
 
+  /// 当前阵地的常驻缓存：首页预热后由战斗直接使用，换阵地时才重新录制。
+  static SceneCache? _shared;
+
+  static SceneCache shared(BattleScene scene) {
+    final cache = _shared;
+    if (cache != null && cache.scene == scene) return cache;
+    cache?.dispose();
+    return _shared = SceneCache(scene: scene);
+  }
+
+  /// 首页空闲时预热选定阵地：录制整层位图、士兵精灵与全部战斗渐变，
+  /// 进入战斗的首帧不再集中创建原生资源。
+  static void prewarm(BattleScene scene) {
+    shared(scene).ensure();
+    prewarmExplosionPaints();
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    for (var step = 1; step <= 10; step++) {
+      paintDamageWash(canvas, fieldSize, step / 10);
+    }
+    recorder.endRecording().dispose();
+  }
+
+  @visibleForTesting
+  static void resetShared() {
+    _shared?.dispose();
+    _shared = null;
+  }
+
   static const double _zoom = 2;
   static const double glowRadius = 138;
 
@@ -27,6 +56,13 @@ class SceneCache {
   static const int coverWearSteps = 5;
 
   static const Size fieldSize = Size(Field.width, Field.height);
+  static const Rect _fieldRect = Rect.fromLTWH(0, 0, Field.width, Field.height);
+  static const Rect _barricadeRect = Rect.fromLTWH(
+    0,
+    Field.height - kBarricadeStripHeight,
+    Field.width,
+    kBarricadeStripHeight,
+  );
 
   /// 当前阵地的配色与景物，整局不变。
   final ScenePalette palette;
@@ -42,9 +78,11 @@ class SceneCache {
 
   /// 士兵精灵：外观、半径与步伐帧相同的单位共用一张剪影。
   ///
-  /// 键的最后一位区分上下半身，枪械在两次贴图之间绘制。
-  final Map<(int, int, int, int, int, bool, bool, bool, bool), ui.Image>
-  _soldiers = {};
+  /// 键由外观序号、半径、步伐帧与标志位拼成整数，稳态帧不再分配元组。
+  final Map<int, ui.Image> _soldiers = {};
+
+  /// 外观对象的序号：外观表都是常量对象，同一外观整局只登记一次。
+  final Map<SoldierLook, int> _lookIds = Map.identity();
 
   /// 士兵的步伐帧数：16 帧足够顺滑，单帧腿部误差不到半像素。
   static const int soldierWalkFrames = 16;
@@ -165,12 +203,10 @@ class SceneCache {
     }
   }
 
-  void drawBase(Canvas canvas) =>
-      _drawLayer(canvas, _Layer.base, Offset.zero & fieldSize);
+  void drawBase(Canvas canvas) => _drawLayer(canvas, _Layer.base, _fieldRect);
 
   /// 阵地景物：砖墙、江堤或仓库外墙，压在地面之上、单位之下。
-  void drawProps(Canvas canvas) =>
-      _drawLayer(canvas, _Layer.props, Offset.zero & fieldSize);
+  void drawProps(Canvas canvas) => _drawLayer(canvas, _Layer.props, _fieldRect);
 
   void drawRoofs(Canvas canvas, double clock) {
     final image = _images[_Layer.roofs];
@@ -201,16 +237,8 @@ class SceneCache {
   }
 
   /// 前景街垒：一条静态位图，余烬由调用方单独绘制。
-  void drawBarricade(Canvas canvas) => _drawLayer(
-    canvas,
-    _Layer.barricade,
-    const Rect.fromLTWH(
-      0,
-      Field.height - kBarricadeStripHeight,
-      Field.width,
-      kBarricadeStripHeight,
-    ),
-  );
+  void drawBarricade(Canvas canvas) =>
+      _drawLayer(canvas, _Layer.barricade, _barricadeRect);
 
   /// 工事：按磨损档位贴图，返回 false 表示缓存不可用。
   bool drawCover(
@@ -242,7 +270,7 @@ class SceneCache {
   }
 
   void drawVignette(Canvas canvas) =>
-      _drawLayer(canvas, _Layer.vignette, Offset.zero & fieldSize);
+      _drawLayer(canvas, _Layer.vignette, _fieldRect);
 
   /// 士兵剪影：下半身、枪械与上半身按层叠顺序绘制，两张精灵夹住枪。
   ///
@@ -303,6 +331,26 @@ class SceneCache {
     return (raw % soldierWalkFrames + soldierWalkFrames) % soldierWalkFrames;
   }
 
+  /// 精灵键：外观序号占高位，半径 8 位、步伐帧 5 位、标志 3 位。
+  int _spriteKey(
+    SoldierLook look,
+    double radius,
+    int frame,
+    bool hostile,
+    bool over,
+  ) {
+    final lookId = _lookIds.putIfAbsent(look, () => _lookIds.length);
+    final flags =
+        (hostile ? 1 : 0) |
+        (look.shield ? 2 : 0) |
+        (look.blade ? 4 : 0) |
+        (over ? 8 : 0);
+    return lookId << 16 |
+        ((radius * 10).round() & 0xff) << 8 |
+        (frame & 0x1f) << 3 |
+        flags;
+  }
+
   ui.Image? _soldierImage(
     SoldierLook look,
     double radius,
@@ -310,17 +358,7 @@ class SceneCache {
     bool hostile = false,
     bool over = false,
   }) {
-    final key = (
-      look.uniform.toARGB32(),
-      look.helmet.toARGB32(),
-      look.accent.toARGB32(),
-      (radius * 10).round(),
-      frame,
-      hostile,
-      look.shield,
-      look.blade,
-      over,
-    );
+    final key = _spriteKey(look, radius, frame, hostile, over);
     final cached = _soldiers[key];
     if (cached != null) return cached;
     if (_soldiersOff) return null;
@@ -458,5 +496,6 @@ class SceneCache {
       image.dispose();
     }
     _soldiers.clear();
+    _lookIds.clear();
   }
 }

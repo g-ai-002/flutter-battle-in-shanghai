@@ -16,12 +16,14 @@ import 'scene_cache.dart';
 /// 缩放、抖动与生命周期。
 class BattleScenePainter {
   BattleScenePainter({required this.sim, SceneCache? cache})
-    : _cache = cache ?? SceneCache(scene: sim.scene) {
+    : _cache = cache ?? SceneCache.shared(sim.scene),
+      _sharedCache = cache == null {
     _combat = BattleCombatPainter(sim: sim, labels: _labels, cache: _cache);
   }
 
   final BattleSim sim;
   final SceneCache _cache;
+  final bool _sharedCache;
   final BattleLabelCache _labels = BattleLabelCache();
   late final BattleCombatPainter _combat;
 
@@ -63,7 +65,7 @@ class BattleScenePainter {
 
   void dispose() {
     _labels.dispose();
-    _cache.dispose();
+    if (!_sharedCache) _cache.dispose();
   }
 
   void _paintBackground(Canvas canvas, double clock) {
