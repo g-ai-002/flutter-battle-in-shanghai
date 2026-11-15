@@ -22,8 +22,9 @@ bool shouldImmersiveLandscape(Size size) {
   return portrait.shortestSide < 600 && fieldFitsBetterLandscape(portrait);
 }
 
-/// 战场页显示模式：满足 [shouldImmersiveLandscape] 时切到横屏并隐藏系统栏，
-/// 离开后恢复系统栏与自动旋转。页面叠放时按引用计数只在最后一个退出时恢复。
+/// 战场页显示模式：满足 [shouldImmersiveLandscape] 时锁定横屏，
+/// 离开后恢复自动旋转。系统栏由 Android 原生沉浸式统一隐藏，页面叠放时
+/// 按引用计数只在最后一个退出时恢复方向。
 class BattlefieldDisplayMode extends StatefulWidget {
   const BattlefieldDisplayMode({super.key, required this.child});
 
@@ -58,14 +59,12 @@ class _BattlefieldDisplayModeState extends State<BattlefieldDisplayMode> {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   void _release() {
     if (_holders > 0) _holders--;
     if (_holders > 0) return;
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   @override
