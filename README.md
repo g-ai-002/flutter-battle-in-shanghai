@@ -55,31 +55,31 @@
 
 ## 下载
 
-最新版本 v0.5.3（启动与首屏专项）：[Run 3309](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3309)
+最新版本 v0.5.4（结算退出修复）：[Run 3333](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3333)
 测试、Android、Windows、Web 与 Release 全部通过，三端产物已上传到
-[Release v0.5.3](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.5.3)。
-本版把战场图层与士兵精灵的录制挪到首页空闲时间，进入战斗的 `prepare` 由约 5ms 降到 0.04ms；
-Android 改为原生沉浸式全屏，首页内容严格居中；满场稳态绘制指令 126 → 116（-8%）。
+[Release v0.5.4](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/releases/tag/v0.5.4)。
+本版修复战斗失利后点击「返回营地」导致 Web 页面整页卡死的问题，暂停菜单「撤退」也恢复退出战斗页；
+退出路径新增 2 个回归测试，测试总数 239。
 
 | 平台 | 产物 |
 | --- | --- |
-| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.5.3-android-aarch64.apk`（44 MiB） |
-| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.5.3-windows-x86_64.zip`（27 MiB） |
-| Web | `flutter-battle-in-shanghai-0.5.3-web.zip`（29 MiB，解压后起静态服务器） |
+| Android (arm64, minSdk 35) | `flutter-battle-in-shanghai-0.5.4-android-aarch64.apk`（44 MiB） |
+| Windows (x64, Win10+) | `flutter-battle-in-shanghai-0.5.4-windows-x86_64.zip`（27 MiB） |
+| Web | `flutter-battle-in-shanghai-0.5.4-web.zip`（29 MiB，解压后起静态服务器） |
 
-在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.5.3/>
+在线试玩：<http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/src/branch/tea-pages/v0.5.4/>
 
 ## 版本
 
 | 版本 | 简介 |
 | --- | --- |
+| v0.5.4 | 修复结算「返回营地」与暂停「撤退」退出战斗页卡死（Issue #1），新增 2 个退出路径回归测试 |
 | v0.5.3 | 启动专项：首页预热战场缓存、Android 原生沉浸式全屏、首页严格居中，稳态帧指令 126 → 116 |
 | v0.5.2 | 性能专项：士兵枪线绝对坐标、贴图源矩形复用、粒子与刷怪队列零移位，繁忙帧指令约降 24% |
 | v0.5.1 | 重构阵地配色、景物、头目弹幕与战役波次为查表，玩法与画面不变 |
 | v0.5.0 | 新增第四处阵地「苏州河 · 铁桥」、钢桁架街景与头目「九四式装甲炮艇」 |
-| v0.4.2 | 性能专项：士兵上下半身双精灵缓存、爆炸碎屑合批与首屏精简，繁忙帧指令约降 37% |
 
-更早：v0.4.1 重构 0.4.0 增量代码（兵种行为、头目四招弹幕与士兵外观收敛为数据表）；v0.4.0 新增刀锋兵与盾牌兵、三处阵地头目专属弹幕；v0.3.2 性能专项（弹道与碎屑合批、重装单位贴图、火球渐变归一化，繁忙帧指令约降 55%）；v0.3.1 美术按街景/景物/单位/特效拆模块；v0.3.0 三处阵地与顺序解锁；v0.2.2 静态图层与渐变复用；v0.2.1 重构模块边界；v0.2.0 沙袋工事与空袭支援；v0.1.2 静态图层位图缓存与粒子池化；v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
+更早：v0.4.2 性能专项（士兵双精灵缓存、爆炸碎屑合批与首屏精简，繁忙帧指令约降 37%）；v0.4.1 重构 0.4.0 增量代码（兵种行为、头目四招弹幕与士兵外观收敛为数据表）；v0.4.0 新增刀锋兵与盾牌兵、三处阵地头目专属弹幕；v0.3.2 性能专项（弹道与碎屑合批、重装单位贴图、火球渐变归一化，繁忙帧指令约降 55%）；v0.3.1 美术按街景/景物/单位/特效拆模块；v0.3.0 三处阵地与顺序解锁；v0.2.2 静态图层与渐变复用；v0.2.1 重构模块边界；v0.2.0 沙袋工事与空袭支援；v0.1.2 静态图层位图缓存与粒子池化；v0.1.1 重构波次调度与渲染分层；v0.1.0 首个可玩版本。
 
 ## 开发
 
