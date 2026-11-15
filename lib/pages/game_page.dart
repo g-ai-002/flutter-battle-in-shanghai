@@ -170,9 +170,13 @@ class _GamePageState extends State<GamePage> with WidgetsBindingObserver {
     _focusNode.requestFocus();
   }
 
+  /// 离开战斗页。这里必须直接 pop：PopScope 的 canPop 为 false 时，
+  /// maybePop 只会回调 onPopInvokedWithResult(false)，再次进入本方法形成死循环。
   void _exit() {
+    if (!mounted || _allowPop) return;
+    _settleTimer?.cancel();
     _allowPop = true;
-    Navigator.of(context).maybePop();
+    Navigator.of(context).pop();
   }
 
   /// 顶部返回：用暂停菜单接管，避免误触丢局。

@@ -30,6 +30,41 @@ Future<SettingsProvider> pumpGame(
   return settings;
 }
 
+/// 从首页压入战斗页，便于验证退出战斗后确实回到上一页。
+Future<SettingsProvider> pumpGameRoute(WidgetTester tester) async {
+  final storage = await StorageService.instance;
+  final settings = SettingsProvider(storage);
+  await tester.pumpWidget(
+    ChangeNotifierProvider.value(
+      value: settings,
+      child: MaterialApp(
+        theme: buildDarkTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const GamePage(
+                      mode: BattleMode.campaign,
+                      difficulty: Difficulty.veteran,
+                    ),
+                  ),
+                ),
+                child: const Text('开战'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('开战'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+  return settings;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -172,6 +207,57 @@ void main() {
     expect(field.width, greaterThan(0));
     expect(field.width / field.height, closeTo(3 / 4, 0.01));
     expect(find.byIcon(Icons.local_fire_department_rounded), findsWidgets);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('战斗失败后返回营地会退出战斗页且不卡死', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpGameRoute(tester);
+    expect(find.byKey(const ValueKey('battlefield')), findsOneWidget);
+
+    final controls = tester.widget<BattleControls>(
+      find.byType(BattleControls),
+    );
+    final controller = controls.controller;
+    controller.sim.player.hp = 0;
+    for (var i = 0; i < 120 && !controller.finished; i++) {
+      controller.sim.update(0.05);
+    }
+    expect(controller.finished, isTrue);
+    controller.togglePause();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('返回营地'), findsOneWidget);
+
+    await tester.tap(find.text('返回营地'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(GamePage), findsNothing);
+    expect(find.text('开战'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('暂停菜单撤退会退出战斗页', (tester) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpGameRoute(tester);
+    await tester.tap(find.text('暂停'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.widgetWithText(TextButton, '撤退'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byType(GamePage), findsNothing);
+    expect(find.text('开战'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
