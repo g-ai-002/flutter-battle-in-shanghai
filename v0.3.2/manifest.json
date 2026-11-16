@@ -1,0 +1,35 @@
+{
+  "name": "血战上海滩",
+  "short_name": "血战上海滩",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#14100C",
+  "theme_color": "#C2452F",
+  "description": "血战上海滩 - 1937 上海街巷保卫战，支持 Android、Windows 与 Web",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
