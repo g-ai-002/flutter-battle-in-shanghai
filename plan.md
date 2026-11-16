@@ -58,7 +58,7 @@
 
 ### v0.5.5 (PATCH) — 2026-11-16
 
-- **状态**: 🚧 构建中
+- **状态**: ✅ 已发布（[Run 3390](http://192.168.31.120:3020/GTech/flutter-battle-in-shanghai/actions/runs/3390)：测试、Android、Windows、Web 与 Release 全部通过，三端产物已上传；Web 已发布到 `tea-pages/v0.5.5`）
 - **目标**: 将音频依赖 flutter_soloud 从 5.2.3 升级到 5.3.0，跟随上游 SIMD 混音加速、
   内存与句柄修复以及 Windows 退出卡死修复；玩法、数值、画面与手感保持不变。
 - **类型**: 依赖升级
@@ -70,8 +70,8 @@
         音效与背景音乐业务代码零改动
   - [x] `flutter analyze` 无告警，239 个测试全部通过
   - [x] 版本号升至 0.5.5
-  - [ ] 三端构建与 Release
-  - [ ] 更新 README 下载信息与试玩地址
+  - [x] 三端构建与 Release：Run 3390 全部通过，APK 43.8 MiB / Windows ZIP 27.0 MiB / Web ZIP 29.3 MiB 已就绪
+  - [x] 更新 README 下载信息与试玩地址
 
 ### v0.5.4 (PATCH) — 2026-11-15
 
